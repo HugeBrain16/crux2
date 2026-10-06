@@ -31,8 +31,8 @@ typedef struct {
 
 typedef struct {
 	int a;
-	reg_t *r[VM_REG];
-	mem_t *mem;
+	reg_t r[VM_REG];
+	mem_t mem;
 } vm_t;
 
 extern void exec(insts_t *insts);

@@ -28,16 +28,16 @@ static uint8_t *vm_alloc(size_t size) {
     if (size == 0) return NULL;
     size = (size + 15) & ~15;
 
-    mem_t *mem = vm.mem;
+    mem_t mem = vm.mem;
 
-    if (mem->current + block_size(size) > mem->end)
+    if (mem.current + block_size(size) > mem.end)
         return NULL;
 
-    block_t *block = (block_t*)mem->current;
+    block_t *block = (block_t*)mem.current;
     block->size = size;
     block->flags = 0;
     block->next = NULL;
-    mem->current += block_size(size);
+    mem.current += block_size(size);
 
     return (uint8_t*)block + sizeof(block_t);
 }
@@ -45,19 +45,11 @@ static uint8_t *vm_alloc(size_t size) {
 static void vm_init() {
     vm = (vm_t){0};
 
-    // reg init
-    for (int i = 0; i < reg_count(); i++) {
-        vm.r[i] = malloc(sizeof(reg_t));
-        memset(vm.r[i], 0, sizeof(reg_t));
-    }
-
-    // vm mem init
-    vm.mem = malloc(sizeof(mem_t));
-    vm.mem->size = VM_MEM;
-    vm.mem->field = malloc(vm.mem->size);
-    vm.mem->start = (uint8_t*)vm.mem->field;
-    vm.mem->current = vm.mem->start;
-    vm.mem->end = (uint8_t*)(vm.mem->start + vm.mem->size);
+    vm.mem.size = VM_MEM;
+    vm.mem.field = malloc(vm.mem.size);
+    vm.mem.start = (uint8_t*)vm.mem.field;
+    vm.mem.current = vm.mem.start;
+    vm.mem.end = (uint8_t*)(vm.mem.start + vm.mem.size);
 }
 
 static int dupe_label(const char *label) {
@@ -102,7 +94,7 @@ static int eval_select(inst_t *inst, size_t *i) {
 }
 
 static int eval_load_i(inst_t *inst, size_t *i) {
-    vm.r[vm.a]->val = atoi(inst->arg->value);
+    vm.r[vm.a].val = atoi(inst->arg->value);
     return 0;
 }
 
@@ -111,14 +103,14 @@ static int eval_load(inst_t *inst, size_t *i) {
     if (!reg_valid(r, inst->arg))
         return 1;
 
-    vm.r[vm.a]->val = vm.r[r]->val;
+    vm.r[vm.a].val = vm.r[r].val;
     return 0;
 }
 
 static int eval_dump(inst_t *inst, size_t *i) {
     printf("A: %d\n", vm.a);
     for (int i = 0; i < reg_count(); i++)
-        printf("R%d: %d\n", i, vm.r[i]->val);
+        printf("R%d: %d\n", i, vm.r[i].val);
     return 0;
 }
 
@@ -149,7 +141,7 @@ static int eval_jump_eq(inst_t *inst, size_t *i) {
     if (!reg_valid(r, reg))
         return 1;
 
-    if (vm.r[vm.a]->val == vm.r[r]->val)
+    if (vm.r[vm.a].val == vm.r[r].val)
         *i = j;
     return 0;
 }
@@ -168,7 +160,7 @@ static int eval_jump_ne(inst_t *inst, size_t *i) {
     if (!reg_valid(r, reg))
         return 1;
 
-    if (vm.r[vm.a]->val != vm.r[r]->val)
+    if (vm.r[vm.a].val != vm.r[r].val)
         *i = j;
     return 0;
 }
@@ -187,7 +179,7 @@ static int eval_jump_lt(inst_t *inst, size_t *i) {
     if (!reg_valid(r, reg))
         return 1;
 
-    if (vm.r[vm.a]->val < vm.r[r]->val)
+    if (vm.r[vm.a].val < vm.r[r].val)
         *i = j;
     return 0;
 }
@@ -206,7 +198,7 @@ static int eval_jump_gt(inst_t *inst, size_t *i) {
     if (!reg_valid(r, reg))
         return 1;
 
-    if (vm.r[vm.a]->val > vm.r[r]->val)
+    if (vm.r[vm.a].val > vm.r[r].val)
         *i = j;
     return 0;
 }
@@ -225,7 +217,7 @@ static int eval_jump_le(inst_t *inst, size_t *i) {
     if (!reg_valid(r, reg))
         return 1;
 
-    if (vm.r[vm.a]->val <= vm.r[r]->val)
+    if (vm.r[vm.a].val <= vm.r[r].val)
         *i = j;
     return 0;
 }
@@ -244,7 +236,7 @@ static int eval_jump_ge(inst_t *inst, size_t *i) {
     if (!reg_valid(r, reg))
         return 1;
 
-    if (vm.r[vm.a]->val >= vm.r[r]->val)
+    if (vm.r[vm.a].val >= vm.r[r].val)
         *i = j;
     return 0;
 }
@@ -265,7 +257,7 @@ static int eval_add(inst_t *inst, size_t *i) {
     if (!reg_valid(r, inst->arg))
         return 1;
 
-    vm.r[vm.a]->val += vm.r[r]->val;
+    vm.r[vm.a].val += vm.r[r].val;
     return 0;
 }
 
@@ -274,7 +266,7 @@ static int eval_sub(inst_t *inst, size_t *i) {
     if (!reg_valid(r, inst->arg))
         return 1;
 
-    vm.r[vm.a]->val -= vm.r[r]->val;
+    vm.r[vm.a].val -= vm.r[r].val;
     return 0;
 }
 
@@ -283,7 +275,7 @@ static int eval_mul(inst_t *inst, size_t *i) {
     if (!reg_valid(r, inst->arg))
         return 1;
 
-    vm.r[vm.a]->val *= vm.r[r]->val;
+    vm.r[vm.a].val *= vm.r[r].val;
     return 0;
 }
 
@@ -292,7 +284,7 @@ static int eval_div(inst_t *inst, size_t *i) {
     if (!reg_valid(r, inst->arg))
         return 1;
 
-    vm.r[vm.a]->val /= vm.r[r]->val;
+    vm.r[vm.a].val /= vm.r[r].val;
     return 0;
 }
 
