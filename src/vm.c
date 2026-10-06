@@ -288,13 +288,13 @@ static int eval_div(inst_t *inst, size_t *i) {
     return 0;
 }
 
-void exec(insts_t *insts) {
+int exec(insts_t *insts) {
     g_insts = insts;
 
     vm_init();
 
+    int err = 0;
     for (size_t i = 0; i < insts->count; i++) {
-        int err = 0;
         inst_t *inst = insts->array[i];
 
         switch (inst->type) {
@@ -351,4 +351,6 @@ void exec(insts_t *insts) {
         if (err)
             break;
     }
+
+    return err;
 }

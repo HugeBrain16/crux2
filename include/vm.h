@@ -35,6 +35,6 @@ typedef struct {
 	mem_t mem;
 } vm_t;
 
-extern void exec(insts_t *insts);
+extern int exec(insts_t *insts);
 
 #endif

@@ -23,8 +23,8 @@ int main(int argc, char *argv[]) {
 
 	token_t *tokens = tokenize(buf, size);
 	insts_t *insts = parse(tokens);
-	exec(insts);
+	int err = exec(insts);
 
 	fclose(file);
-	return 0;
+	return err;
 }
