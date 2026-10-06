@@ -1,0 +1,13 @@
+select 2;
+load_i 256;
+
+select 1;
+load_i 2;
+
+select 0;
+load_i 1;
+label loop;
+mul 1;
+jump_le loop 2;
+
+dump;
