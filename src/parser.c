@@ -185,7 +185,7 @@ insts_t *parse(token_t *tokens) {
     insts->array = malloc(sizeof(inst_t)*insts->length);
 
     token_t *curr = tokens;
-    while (curr && curr->next) {
+    while (curr) {
         // start of instruction
         if (curr->type == TOKEN_ID) {
             token_t *end = NULL;
