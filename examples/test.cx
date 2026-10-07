@@ -1,0 +1,3 @@
+select 0;
+load_i -10;
+dump;

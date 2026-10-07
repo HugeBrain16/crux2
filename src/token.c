@@ -52,6 +52,14 @@ static token_t *lex_id(const char *src, size_t *pos) {
 static token_t *lex_num(const char *src, size_t *pos) {
 	token_t *t = token_new(TOKEN_NUM);
 
+	// negative
+	if (*src == '-') {
+		t->value = realloc(t->value, t->size + 1);
+		t->value[t->size++] = *src;
+		src++;
+		(*pos)++;
+	}
+
 	while (isnum(*src) || *src == '_') {
 		if (*src != '_') {
 			t->value = realloc(t->value, t->size + 1);
@@ -123,10 +131,14 @@ token_t *tokenize(const char *src, size_t len) {
 		int start = i;
 		if (isletter(c) || c == '_')
 			tok = lex_id(src + i, &i);
-		else if (isnum(c))
+		else if (isnum(c) || (c == '-' && isnum(cn)))
 			tok = lex_num(src + i, &i);
 		else if (c == ';')
 			tok = lex_end(src + i, &i);
+		else {
+			printf("Error: Invalid syntax (l: %d, p: %d)\n", lineno, (int)i);
+			break;
+		}
 
 		if (tok) {
 			i--;
