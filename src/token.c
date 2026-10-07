@@ -12,7 +12,7 @@ static int isletter(char c) {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
-static int isalpha(char c) {
+static int isalpha2(char c) {
 	return isnum(c) || isletter(c);
 }
 
@@ -36,7 +36,7 @@ static token_t *token_def(token_e type, const char *src, size_t len) {
 static token_t *lex_id(const char *src, size_t *pos) {
 	token_t *t = token_new(TOKEN_ID);
 
-	while (isalpha(*src) || *src == '_') {
+	while (isalpha2(*src) || *src == '_') {
 		t->value = realloc(t->value, t->size + 1);
 		t->value[t->size++] = *src;
 		src++;
