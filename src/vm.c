@@ -264,6 +264,15 @@ static int eval_div(inst_t *inst, size_t *i) {
     return 0;
 }
 
+static int eval_mod(inst_t *inst, size_t *i) {
+    int r = inst->arg->num;
+    if (!reg_valid(r, inst->arg))
+        return 1;
+
+    vm.r[vm.a].val %= vm.r[r].val;
+    return 0;
+}
+
 int exec(insts_t *insts) {
     g_insts = insts;
 
@@ -294,6 +303,9 @@ int exec(insts_t *insts) {
                 break;
             case IN_DIV:
                 err = eval_div(inst, &i);
+                break;
+            case IN_MOD:
+                err = eval_mod(inst, &i);
                 break;
             case IN_JUMP:
                 err = eval_jump(inst, &i);

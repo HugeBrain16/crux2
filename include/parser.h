@@ -14,6 +14,7 @@ typedef enum {
     IN_SUB,
     IN_MUL,
     IN_DIV,
+    IN_MOD,
     IN_JUMP,
     IN_JUMP_EQ,
     IN_JUMP_NE,
