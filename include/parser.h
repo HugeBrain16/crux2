@@ -24,13 +24,45 @@ typedef enum {
     IN_DUMP,
 } inst_e;
 
+typedef enum {
+    L_GEN, // generic, no specific type. stores token's value
+    L_ID,
+    L_NUM,
+} lit_e;
+
+typedef struct lit {
+    lit_e type;
+    int lineno;
+    int pos;
+    struct lit *next;
+    union {
+        uint32_t id;
+        int num;
+        char *gen;
+    };
+} lit_t;
+
 typedef struct {
     inst_e type;
-	token_t *inst;
-	token_t *arg;
+    int lineno;
+    int pos;
+	lit_t *arg;
 } inst_t;
 
 typedef struct {
+    uint32_t id;
+    char *name;
+} id2_t; // named id2_t to avoid conflict in sys/types.h 
+
+typedef struct {
+    size_t count;
+    size_t length;
+    uint32_t index;
+    id2_t **array;
+} ids_t;
+
+typedef struct {
+    ids_t *ids;
     size_t count;
     size_t length;
     inst_t **array;

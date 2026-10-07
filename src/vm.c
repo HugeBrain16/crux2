@@ -11,7 +11,7 @@ static int reg_count() {
     return sizeof(vm.r) / sizeof(vm.r[0]);
 }
 
-static int reg_valid(int r, token_t *arg) {
+static int reg_valid(int r, lit_t *arg) {
     if (r < 0 || r >= reg_count()) {
         printf("Error: Invalid register (l: %d, p: %d)\n", arg->lineno, arg->pos);
         return 0;
@@ -52,32 +52,14 @@ static void vm_init() {
     vm.mem.end = (uint8_t*)(vm.mem.start + vm.mem.size);
 }
 
-static int dupe_label(const char *label) {
-    if (!g_insts)
-        return 0;
-
-    int count = 0;
-    for (size_t i = 0; i < g_insts->count; i++) {
-        inst_t *inst = g_insts->array[i];
-
-        if (!strcmp(inst->inst->value, "label") && !strcmp(inst->arg->value, label))
-            count++;
-
-        if (count > 1)
-            return 1;
-    }
-
-    return 0;
-}
-
-static int find_label(const char *label) {
+static int find_label(uint32_t id) {
     if (!g_insts)
         return -1;
     
     for (size_t i = 0; i < g_insts->count; i++) {
         inst_t *inst = g_insts->array[i];
 
-        if (!strcmp(inst->inst->value, "label") && !strcmp(inst->arg->value, label))
+        if (inst->type == IN_LABEL && inst->arg->id == id)
             return i;
     }
 
@@ -85,7 +67,7 @@ static int find_label(const char *label) {
 }
 
 static int eval_select(inst_t *inst, size_t *i) {
-    int r = atoi(inst->arg->value);
+    int r = inst->arg->num;
     if (!reg_valid(r, inst->arg))
         return 1;
 
@@ -94,12 +76,12 @@ static int eval_select(inst_t *inst, size_t *i) {
 }
 
 static int eval_load_i(inst_t *inst, size_t *i) {
-    vm.r[vm.a].val = atoi(inst->arg->value);
+    vm.r[vm.a].val = inst->arg->num;
     return 0;
 }
 
 static int eval_load(inst_t *inst, size_t *i) {
-    int r = atoi(inst->arg->value);
+    int r = inst->arg->num;
     if (!reg_valid(r, inst->arg))
         return 1;
 
@@ -115,9 +97,7 @@ static int eval_dump(inst_t *inst, size_t *i) {
 }
 
 static int eval_jump(inst_t *inst, size_t *i) {
-    const char *label = inst->arg->value;
-
-    int j = find_label(label);
+    int j = find_label(inst->arg->id);
     if (j == -1) {
         printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
         return 1;
@@ -128,16 +108,14 @@ static int eval_jump(inst_t *inst, size_t *i) {
 }
 
 static int eval_jump_eq(inst_t *inst, size_t *i) {
-    const char *label = inst->arg->value;
-
-    int j = find_label(label);
+    int j = find_label(inst->arg->id);
     if (j == -1) {
         printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
-    token_t *reg = inst->arg->next;
-    int r = atoi(reg->value);
+    lit_t *reg = inst->arg->next;
+    int r = reg->num;
     if (!reg_valid(r, reg))
         return 1;
 
@@ -147,16 +125,14 @@ static int eval_jump_eq(inst_t *inst, size_t *i) {
 }
 
 static int eval_jump_ne(inst_t *inst, size_t *i) {
-    const char *label = inst->arg->value;
-
-    int j = find_label(label);
+    int j = find_label(inst->arg->id);
     if (j == -1) {
         printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
-    token_t *reg = inst->arg->next;
-    int r = atoi(reg->value);
+    lit_t *reg = inst->arg->next;
+    int r = reg->num;
     if (!reg_valid(r, reg))
         return 1;
 
@@ -166,16 +142,14 @@ static int eval_jump_ne(inst_t *inst, size_t *i) {
 }
 
 static int eval_jump_lt(inst_t *inst, size_t *i) {
-    const char *label = inst->arg->value;
-
-    int j = find_label(label);
+    int j = find_label(inst->arg->id);
     if (j == -1) {
         printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
-    token_t *reg = inst->arg->next;
-    int r = atoi(reg->value);
+    lit_t *reg = inst->arg->next;
+    int r = reg->num;
     if (!reg_valid(r, reg))
         return 1;
 
@@ -185,16 +159,14 @@ static int eval_jump_lt(inst_t *inst, size_t *i) {
 }
 
 static int eval_jump_gt(inst_t *inst, size_t *i) {
-    const char *label = inst->arg->value;
-
-    int j = find_label(label);
+    int j = find_label(inst->arg->id);
     if (j == -1) {
         printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
-    token_t *reg = inst->arg->next;
-    int r = atoi(reg->value);
+    lit_t *reg = inst->arg->next;
+    int r = reg->num;
     if (!reg_valid(r, reg))
         return 1;
 
@@ -204,16 +176,14 @@ static int eval_jump_gt(inst_t *inst, size_t *i) {
 }
 
 static int eval_jump_le(inst_t *inst, size_t *i) {
-    const char *label = inst->arg->value;
-
-    int j = find_label(label);
+    int j = find_label(inst->arg->id);
     if (j == -1) {
         printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
-    token_t *reg = inst->arg->next;
-    int r = atoi(reg->value);
+    lit_t *reg = inst->arg->next;
+    int r = reg->num;
     if (!reg_valid(r, reg))
         return 1;
 
@@ -223,16 +193,14 @@ static int eval_jump_le(inst_t *inst, size_t *i) {
 }
 
 static int eval_jump_ge(inst_t *inst, size_t *i) {
-    const char *label = inst->arg->value;
-
-    int j = find_label(label);
+    int j = find_label(inst->arg->id);
     if (j == -1) {
         printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
-    token_t *reg = inst->arg->next;
-    int r = atoi(reg->value);
+    lit_t *reg = inst->arg->next;
+    int r = reg->num;
     if (!reg_valid(r, reg))
         return 1;
 
@@ -242,18 +210,26 @@ static int eval_jump_ge(inst_t *inst, size_t *i) {
 }
 
 static int eval_label(inst_t *inst, size_t *i) {
-    const char *label = inst->arg->value;
+    uint32_t id = inst->arg->id;
+    int count = 0;
 
-    if (dupe_label(label)) {
-        printf("Error: Duplicate label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
-        return 1;
+    for (size_t i = 0; i < g_insts->count; i++) {
+        inst = g_insts->array[i];
+
+        if (inst->type == IN_LABEL && inst->arg->type == L_ID && inst->arg->id == id)
+            count++;
+
+        if (count == 2) {
+            printf("Error: Duplicate label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
+            return 1;
+        }
     }
 
     return 0;
 }
 
 static int eval_add(inst_t *inst, size_t *i) {
-    int r = atoi(inst->arg->value);
+    int r = inst->arg->num;
     if (!reg_valid(r, inst->arg))
         return 1;
 
@@ -262,7 +238,7 @@ static int eval_add(inst_t *inst, size_t *i) {
 }
 
 static int eval_sub(inst_t *inst, size_t *i) {
-    int r = atoi(inst->arg->value);
+    int r = inst->arg->num;
     if (!reg_valid(r, inst->arg))
         return 1;
 
@@ -271,7 +247,7 @@ static int eval_sub(inst_t *inst, size_t *i) {
 }
 
 static int eval_mul(inst_t *inst, size_t *i) {
-    int r = atoi(inst->arg->value);
+    int r = inst->arg->num;
     if (!reg_valid(r, inst->arg))
         return 1;
 
@@ -280,7 +256,7 @@ static int eval_mul(inst_t *inst, size_t *i) {
 }
 
 static int eval_div(inst_t *inst, size_t *i) {
-    int r = atoi(inst->arg->value);
+    int r = inst->arg->num;
     if (!reg_valid(r, inst->arg))
         return 1;
 
