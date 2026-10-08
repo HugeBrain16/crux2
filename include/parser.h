@@ -19,6 +19,8 @@ typedef enum {
     IN_OR,
     IN_XOR,
     IN_NOT,
+    IN_SHIFT_L,
+    IN_SHIFT_R,
     IN_INC,
     IN_DEC,
     IN_JUMP,

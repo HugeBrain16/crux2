@@ -255,6 +255,9 @@ static parser_t parsers[] = {
     {"xor", IN_XOR, parse_num_arg},
     {"not", IN_NOT, parse_num_arg},
 
+    {"shift_l", IN_SHIFT_L, parse_num_arg2},
+    {"shift_r", IN_SHIFT_R, parse_num_arg2},
+
     {"label",  IN_LABEL,  parse_id_arg},
     {"jump",   IN_JUMP,   parse_id_arg},
 

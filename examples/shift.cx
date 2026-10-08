@@ -1,0 +1,13 @@
+# base
+select 0;
+load_i 1;
+
+# shift
+select 1;
+load_i 4; # value to shift by
+
+shift_l 1 2;
+
+# print result
+select 2;
+printnum;

@@ -1,0 +1,22 @@
+# pointer
+select 0;
+load_i 0;
+
+# increment
+select 1;
+load_i 0;
+
+# max
+select 2;
+load_i 256;
+
+label next;
+memw8 %0 1;
+
+select 0; inc;
+select 1; inc;
+
+select 0;
+jump_ne next 2;
+
+memdump;

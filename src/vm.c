@@ -501,6 +501,34 @@ static int eval_dec(inst_t *inst, size_t *i) {
     return 0;
 }
 
+static int eval_shift_l(inst_t *inst, size_t *i) {
+    int src;
+    if (!get_reg(inst->arg, &src))
+        return 1;
+
+    lit_t *next = inst->arg->next;
+    int dst;
+    if (!get_reg(next, &dst))
+        return 1;
+
+    vm.r[dst].val = vm.r[vm.a].val << vm.r[src].val;
+    return 0;
+}
+
+static int eval_shift_r(inst_t *inst, size_t *i) {
+    int src;
+    if (!get_reg(inst->arg, &src))
+        return 1;
+
+    lit_t *next = inst->arg->next;
+    int dst;
+    if (!get_reg(next, &dst))
+        return 1;
+
+    vm.r[dst].val = vm.r[vm.a].val >> vm.r[src].val;
+    return 0;
+}
+
 int exec(insts_t *insts) {
     g_insts = insts;
 
@@ -523,6 +551,8 @@ int exec(insts_t *insts) {
             case IN_OR: err = eval_or(inst, &i); break;
             case IN_XOR: err = eval_xor(inst, &i); break;
             case IN_NOT: err = eval_not(inst, &i); break;
+            case IN_SHIFT_L: err = eval_shift_l(inst, &i); break;
+            case IN_SHIFT_R: err = eval_shift_r(inst, &i); break;
             case IN_JUMP: err = eval_jump(inst, &i); break;
             case IN_JUMP_EQ: err = eval_jump_eq(inst, &i); break;
             case IN_JUMP_NE: err = eval_jump_ne(inst, &i); break;
