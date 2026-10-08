@@ -275,7 +275,9 @@ static parser_t parsers[] = {
 
     {"dump", IN_DUMP, parse_no_arg},
     {"memdump", IN_MEMDUMP, parse_no_arg},
+
     {"printchar", IN_PRINTCHAR, parse_no_arg},
+    {"printnum", IN_PRINTNUM, parse_no_arg},
 };
 
 insts_t *parse(token_t *tokens) {

@@ -152,6 +152,11 @@ static int eval_printchar(inst_t *inst, size_t *i) {
     return 0;
 }
 
+static int eval_printnum(inst_t *inst, size_t *i) {
+    printf("%d", vm.r[vm.a].val);
+    return 0;
+}
+
 static int eval_jump(inst_t *inst, size_t *i) {
     int j = find_label(inst->arg->id);
     if (j == -1) {
@@ -506,102 +511,39 @@ int exec(insts_t *insts) {
         inst_t *inst = insts->array[i];
 
         switch (inst->type) {
-            case IN_LOAD:
-                err = eval_load(inst, &i);
-                break;
-            case IN_LOAD_I:
-                err = eval_load_i(inst, &i);
-                break;
-            case IN_SELECT:
-                err = eval_select(inst, &i);
-                break;
-            case IN_ADD:
-                err = eval_add(inst, &i);
-                break;
-            case IN_SUB:
-                err = eval_sub(inst, &i);
-                break;
-            case IN_MUL:
-                err = eval_mul(inst, &i);
-                break;
-            case IN_DIV:
-                err = eval_div(inst, &i);
-                break;
-            case IN_MOD:
-                err = eval_mod(inst, &i);
-                break;
-            case IN_AND:
-                err = eval_and(inst, &i);
-                break;
-            case IN_OR:
-                err = eval_or(inst, &i);
-                break;
-            case IN_XOR:
-                err = eval_xor(inst, &i);
-                break;
-            case IN_NOT:
-                err = eval_not(inst, &i);
-                break;
-            case IN_JUMP:
-                err = eval_jump(inst, &i);
-                break;
-            case IN_JUMP_EQ:
-                err = eval_jump_eq(inst, &i);
-                break;
-            case IN_JUMP_NE:
-                err = eval_jump_ne(inst, &i);
-                break;
-            case IN_JUMP_LT:
-                err = eval_jump_lt(inst, &i);
-                break;
-            case IN_JUMP_GT:
-                err = eval_jump_gt(inst, &i);
-                break;
-            case IN_JUMP_LE:
-                err = eval_jump_le(inst, &i);
-                break;
-            case IN_JUMP_GE:
-                err = eval_jump_ge(inst, &i);
-                break;
-            case IN_DUMP:
-                err = eval_dump(inst, &i);
-                break;
-            case IN_MEMDUMP:
-                err = eval_memdump(inst, &i);
-                break;
-            case IN_PRINTCHAR:
-                err = eval_printchar(inst, &i);
-                break;
-            case IN_LABEL:
-                err = eval_label(inst, &i);
-                break;
-            case IN_MEMW8:
-                err = eval_memw8(inst, &i);
-                break;
-            case IN_MEMR8:
-                err = eval_memr8(inst, &i);
-                break;
-            case IN_MEMW16:
-                err = eval_memw16(inst, &i);
-                break;
-            case IN_MEMR16:
-                err = eval_memr16(inst, &i);
-                break;
-            case IN_MEMW32:
-                err = eval_memw32(inst, &i);
-                break;
-            case IN_MEMR32:
-                err = eval_memr32(inst, &i);
-                break;
-            case IN_MEMWS:
-                err = eval_memws(inst, &i);
-                break;
-            case IN_INC:
-                err = eval_inc(inst, &i);
-                break;
-            case IN_DEC:
-                err = eval_dec(inst, &i);
-                break;
+            case IN_LOAD: err = eval_load(inst, &i); break;
+            case IN_LOAD_I: err = eval_load_i(inst, &i); break;
+            case IN_SELECT: err = eval_select(inst, &i); break;
+            case IN_ADD: err = eval_add(inst, &i); break;
+            case IN_SUB: err = eval_sub(inst, &i); break;
+            case IN_MUL: err = eval_mul(inst, &i); break;
+            case IN_DIV: err = eval_div(inst, &i); break;
+            case IN_MOD: err = eval_mod(inst, &i); break;
+            case IN_AND: err = eval_and(inst, &i); break;
+            case IN_OR: err = eval_or(inst, &i); break;
+            case IN_XOR: err = eval_xor(inst, &i); break;
+            case IN_NOT: err = eval_not(inst, &i); break;
+            case IN_JUMP: err = eval_jump(inst, &i); break;
+            case IN_JUMP_EQ: err = eval_jump_eq(inst, &i); break;
+            case IN_JUMP_NE: err = eval_jump_ne(inst, &i); break;
+            case IN_JUMP_LT: err = eval_jump_lt(inst, &i); break;
+            case IN_JUMP_GT: err = eval_jump_gt(inst, &i); break;
+            case IN_JUMP_LE: err = eval_jump_le(inst, &i); break;
+            case IN_JUMP_GE: err = eval_jump_ge(inst, &i); break;
+            case IN_DUMP: err = eval_dump(inst, &i); break;
+            case IN_MEMDUMP: err = eval_memdump(inst, &i); break;
+            case IN_PRINTCHAR: err = eval_printchar(inst, &i); break;
+            case IN_PRINTNUM: err = eval_printnum(inst, &i); break;
+            case IN_LABEL: err = eval_label(inst, &i); break;
+            case IN_MEMW8: err = eval_memw8(inst, &i); break;
+            case IN_MEMR8: err = eval_memr8(inst, &i); break;
+            case IN_MEMW16: err = eval_memw16(inst, &i); break;
+            case IN_MEMR16: err = eval_memr16(inst, &i); break;
+            case IN_MEMW32: err = eval_memw32(inst, &i); break;
+            case IN_MEMR32: err = eval_memr32(inst, &i); break;
+            case IN_MEMWS: err = eval_memws(inst, &i); break;
+            case IN_INC: err = eval_inc(inst, &i); break;
+            case IN_DEC: err = eval_dec(inst, &i); break;
             default:
                 err = 1;
                 printf("Error: Unhandled instruction (l: %d, p: %d)\n", inst->lineno, inst->pos);

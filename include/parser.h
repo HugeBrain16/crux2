@@ -38,6 +38,7 @@ typedef enum {
     IN_DUMP,
     IN_MEMDUMP,
     IN_PRINTCHAR,
+    IN_PRINTNUM,
 } inst_e;
 
 typedef enum {
