@@ -7,6 +7,44 @@
 static insts_t *insts = NULL;
 static ids_t *ids = NULL;
 
+void unescape(char *buffer, const char *src, size_t size) {
+    int is_escaped = 0;
+
+    size_t i = 0;
+    char c;
+    while(*src != '\0' && i < size - 1) {
+        c = *src;
+
+        if (is_escaped) {
+            switch (c) {
+                case 'n': buffer[i++] = '\n'; break;
+                case 't': buffer[i++] = '\t'; break;
+                case 'b': buffer[i++] = '\b'; break;
+                case 'r': buffer[i++] = '\r'; break;
+                case '"': buffer[i++] = '"'; break;
+                case '\'': buffer[i++] = '\''; break;
+                case '\\': buffer[i++] = '\\'; break;
+                default:
+                    buffer[i++] = '\\';
+                    buffer[i++] = c;
+                    break;
+            }
+
+            is_escaped = 0;
+        } else if (c == '\\')
+            is_escaped = 1;
+        else
+            buffer[i++] = c;
+
+        src++;
+    }
+
+    if (is_escaped)
+        buffer[i++] = '\\';
+
+    buffer[i] = '\0';
+}
+
 static void insts_push(inst_t *inst) {
     if (insts->count == insts->length - 1) {
         insts->length *= 2;
@@ -25,61 +63,92 @@ static void ids_push(id2_t *id) {
     ids->array[ids->count++] = id;
 }
 
-static token_t *parse_num_arg(token_t *inst, token_t *arg) {
+static token_t *parse_op(token_t *prev, token_t *arg) {
     if (!arg) {
-        printf("Error: Value expected (l: %d, p: %d)\n", inst->lineno, inst->pos);
+        printf("Error: Value expected (l: %d, p: %d)\n", prev->lineno, prev->pos);
         return NULL;
     }
-
+ 
+    if (arg->type == TOKEN_REF) {
+        token_t *num = arg->next;
+ 
+        if (!num) {
+            printf("Error: Reference not followed by register number (l: %d, p: %d)\n", arg->lineno, arg->pos);
+            return NULL;
+        }
+ 
+        if (num->type != TOKEN_NUM || num->pos - arg->pos != 1) {
+            printf("Error: Reference not followed by register number (l: %d, p: %d)\n", num->lineno, num->pos);
+            return NULL;
+        }
+ 
+        return num->next;
+    }
+ 
     if (arg->type != TOKEN_NUM) {
         printf("Error: Value expected (l: %d, p: %d)\n", arg->lineno, arg->pos);
         return NULL;
     }
-
+ 
     return arg->next;
 }
-
+ 
+static token_t *parse_num_arg(token_t *inst, token_t *arg) {
+    return parse_op(inst, arg);
+}
+ 
 static token_t *parse_id_arg(token_t *inst, token_t *arg) {
     if (!arg) {
         printf("Error: Value expected (l: %d, p: %d)\n", inst->lineno, inst->pos);
         return NULL;
     }
-
+ 
     if (arg->type != TOKEN_ID) {
         printf("Error: Value expected (l: %d, p: %d)\n", arg->lineno, arg->pos);
         return NULL;
     }
-
+ 
     return arg->next;
 }
-
+ 
 static token_t *parse_jump_cond(token_t *inst, token_t *arg) {
     /* jump to defined label if condition met */
-
+ 
     if (!arg) {
         printf("Error: Value expected (l: %d, p: %d)\n", inst->lineno, inst->pos);
         return NULL;
     }
-
+ 
     if (arg->type != TOKEN_ID) {
         printf("Error: Value expected (l: %d, p: %d)\n", arg->lineno, arg->pos);
         return NULL;
     }
 
-    token_t *next = arg->next;
+    return parse_op(arg, arg->next);
+}
+ 
+static token_t *parse_num_arg2(token_t *inst, token_t *arg) {
+    token_t *next = parse_op(inst, arg);
+    if (!next)
+        return NULL;
+
+    return parse_op(arg, next);
+}
+ 
+static token_t *parse_str_arg(token_t *inst, token_t *arg) {
+    token_t *next = parse_op(inst, arg);
     if (!next) {
-        printf("Error: Value expected (l: %d, p: %d)\n", arg->lineno, arg->pos);
         return NULL;
     }
-
-    if (next->type != TOKEN_NUM) {
+ 
+    if (next->type != TOKEN_STR) {
         printf("Error: Value expected (l: %d, p: %d)\n", next->lineno, next->pos);
         return NULL;
     }
-
+ 
     return next->next;
 }
-
+ 
 static token_t *parse_no_arg(token_t *inst, token_t *arg) {
     return arg;
 }
@@ -120,11 +189,24 @@ static lit_t *parse_args(token_t *arg) {
         switch (curr->type) {
             case TOKEN_NUM:
                 lit->type = L_NUM;
-                lit->num = atoi(curr->value);
+                lit->num = strtol(curr->value, NULL, 0);
                 break;
             case TOKEN_ID:
                 lit->type = L_ID;
                 lit->id = get_index(curr->value);
+                break;
+            case TOKEN_STR:
+                lit->type = L_STR;
+
+                char *str = malloc(curr->size + 1);
+                unescape(str, curr->value, curr->size + 1);
+                lit->str = str;
+                break;
+            case TOKEN_REF:
+                lit->type = L_REF;
+
+                curr = curr->next;
+                lit->ref = strtol(curr->value, NULL, 0);
                 break;
             default:
                 lit->type = L_GEN;
@@ -165,6 +247,14 @@ static parser_t parsers[] = {
     {"div", IN_DIV, parse_num_arg},
     {"mod", IN_MOD, parse_num_arg},
 
+    {"inc", IN_INC, parse_no_arg},
+    {"dec", IN_DEC, parse_no_arg},
+
+    {"and", IN_AND, parse_num_arg},
+    {"or",  IN_OR,  parse_num_arg},
+    {"xor", IN_XOR, parse_num_arg},
+    {"not", IN_NOT, parse_num_arg},
+
     {"label",  IN_LABEL,  parse_id_arg},
     {"jump",   IN_JUMP,   parse_id_arg},
 
@@ -175,7 +265,17 @@ static parser_t parsers[] = {
     {"jump_le", IN_JUMP_LE, parse_jump_cond},
     {"jump_ge", IN_JUMP_GE, parse_jump_cond},
 
+    {"memw8", IN_MEMW8, parse_num_arg2},
+    {"memr8", IN_MEMR8, parse_num_arg},
+    {"memw16", IN_MEMW16, parse_num_arg2},
+    {"memr16", IN_MEMR16, parse_num_arg},
+    {"memw32", IN_MEMW32, parse_num_arg2},
+    {"memr32", IN_MEMR32, parse_num_arg},
+    {"memws", IN_MEMWS, parse_str_arg},
+
     {"dump", IN_DUMP, parse_no_arg},
+    {"memdump", IN_MEMDUMP, parse_no_arg},
+    {"printchar", IN_PRINTCHAR, parse_no_arg},
 };
 
 insts_t *parse(token_t *tokens) {

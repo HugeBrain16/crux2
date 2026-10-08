@@ -22,15 +22,15 @@ typedef struct block {
 } block_t;
 
 typedef struct {
-	size_t size;
 	uint8_t *start;
 	uint8_t *current;
 	uint8_t *end;
-	void *field;
+	uint8_t field[VM_MEM];
 } mem_t;
 
 typedef struct {
 	int a;
+	uint32_t f;
 	reg_t r[VM_REG];
 	mem_t mem;
 } vm_t;

@@ -1,0 +1,24 @@
+memws 0x0 "hello world!\n";
+
+# end of string check
+select 1;
+load_i 0;
+
+# pointer
+select 0;
+load_i 0;
+
+label next;
+
+select 3; # holds char
+memr8 %0; # read char r3 = mem[r0]
+jump_eq end 1; # r3 == r1, where r1 is 0
+printchar;
+
+# increment
+select 0;
+inc;
+
+jump next;
+
+label end;

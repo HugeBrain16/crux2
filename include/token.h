@@ -7,7 +7,9 @@ typedef enum token_enum {
 	TOKEN_NULL,
 	TOKEN_ID, //a-z0-9_
 	TOKEN_NUM, // 0-9
+	TOKEN_STR,
 	TOKEN_END, // ;
+	TOKEN_REF, // % register reference
 } token_e;
 
 typedef struct token {
