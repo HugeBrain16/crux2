@@ -48,15 +48,21 @@ static token_t *token_def(token_e type, const char *src, size_t len) {
 static token_t *lex_id(const char *src, size_t *pos) {
 	token_t *t = token_new(TOKEN_ID);
 
+	size_t c = 0;
 	while (isalpha2(*src) || *src == '_') {
-		t->value = realloc(t->value, t->size + 1);
-		t->value[t->size++] = *src;
+		if (c >= t->size) {
+			t->size = t->size == 0 ? 4 : t->size * 2;
+			t->value = realloc(t->value, t->size);
+		}
+		t->value[c++] = *src;
+
 		src++;
 		(*pos)++;
 	}
 
-	t->value = realloc(t->value, t->size + 1);
-	t->value[t->size] = '\0';
+	if (c >= t->size)
+		t->value = realloc(t->value, t->size + 1);
+	t->value[c] = '\0';
 
 	return t;
 }
@@ -64,6 +70,7 @@ static token_t *lex_id(const char *src, size_t *pos) {
 static token_t *lex_num(const char *src, size_t *pos) {
 	token_t *t = token_new(TOKEN_NUM);
 
+	size_t c = 0;
 	if (*src == '0' && *(src + 1) == 'x') {
 		t->value = realloc(t->value, t->size + 2);
 		t->value[t->size++] = *src;
@@ -78,8 +85,11 @@ static token_t *lex_num(const char *src, size_t *pos) {
 
 		while (ishex(*src) || *src == '_') {
 			if (*src != '_') {
-				t->value = realloc(t->value, t->size + 1);
-				t->value[t->size++] = *src;
+				if (c >= t->size) {
+					t->size *= 2;
+					t->value = realloc(t->value, t->size);
+				}
+				t->value[c++] = *src;
 			}
 
 			src++;
@@ -99,8 +109,11 @@ static token_t *lex_num(const char *src, size_t *pos) {
 
 		while (isbin(*src) || *src == '_') {
 			if (*src != '_') {
-				t->value = realloc(t->value, t->size + 1);
-				t->value[t->size++] = *src;
+				if (c >= t->size) {
+					t->size *= 2;
+					t->value = realloc(t->value, t->size);
+				}
+				t->value[c++] = *src;
 			}
 
 			src++;
@@ -117,8 +130,11 @@ static token_t *lex_num(const char *src, size_t *pos) {
 
 		while (isnum(*src) || *src == '_') {
 			if (*src != '_') {
-				t->value = realloc(t->value, t->size + 1);
-				t->value[t->size++] = *src;
+				if (c >= t->size) {
+					t->size = t->size == 0 ? 4 : t->size * 2;
+					t->value = realloc(t->value, t->size);
+				}
+				t->value[c++] = *src;
 			}
 
 			src++;
@@ -126,8 +142,9 @@ static token_t *lex_num(const char *src, size_t *pos) {
 		}
 	}
 
-	t->value = realloc(t->value, t->size + 1);
-	t->value[t->size] = '\0';
+	if (c >= t->size)
+		t->value = realloc(t->value, t->size + 1);
+	t->value[c] = '\0';
 
 	return t;
 }
@@ -156,10 +173,14 @@ static token_t *lex_str(const char *src, size_t *pos) {
 	src++;
 	(*pos)++;
 
+	size_t c = 0;
 	int is_escaped = 0;
 	while ((*src != '"' || is_escaped) && *src != '\0') {
-		t->value = realloc(t->value, t->size + 1);
-		t->value[t->size++] = *src;
+		if (c >= t->size) {
+			t->size = t->size == 0 ? 4 : t->size * 2;
+			t->value = realloc(t->value, t->size);
+		}
+		t->value[c++] = *src;
 
 		if (is_escaped)
 			is_escaped = 0;
@@ -180,8 +201,9 @@ static token_t *lex_str(const char *src, size_t *pos) {
 	src++;
 	(*pos)++;
 
-	t->value = realloc(t->value, t->size + 1);
-	t->value[t->size] = '\0';
+	if (c >= t->size)
+		t->value = realloc(t->value, t->size + 1);
+	t->value[c] = '\0';
 
 	return t;
 }
