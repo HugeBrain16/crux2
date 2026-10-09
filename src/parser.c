@@ -189,7 +189,10 @@ static lit_t *parse_args(token_t *arg) {
         switch (curr->type) {
             case TOKEN_NUM:
                 lit->type = L_NUM;
-                lit->num = strtol(curr->value, NULL, 0);
+                if (curr->size > 1 && *curr->value == '0' && *(curr->value + 1) == 'b')
+                    lit->num = strtol(curr->value += 2, NULL, 2);
+                else
+                    lit->num = strtol(curr->value, NULL, 0);
                 break;
             case TOKEN_ID:
                 lit->type = L_ID;

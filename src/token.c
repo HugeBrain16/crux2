@@ -24,6 +24,10 @@ static int ishex(char c) {
     	   (c >= 'A' && c <= 'F');
 }
 
+static int isbin(char c) {
+	return c >= '0' && c <= '1';
+}
+
 static token_t *token_new(token_e type) {
 	token_t *t = malloc(sizeof(token_t));
 	t->type = type;
@@ -59,7 +63,7 @@ static token_t *lex_id(const char *src, size_t *pos) {
 
 static token_t *lex_num(const char *src, size_t *pos) {
 	token_t *t = token_new(TOKEN_NUM);
-	
+
 	if (*src == '0' && *(src + 1) == 'x') {
 		t->value = realloc(t->value, t->size + 2);
 		t->value[t->size++] = *src;
@@ -73,6 +77,27 @@ static token_t *lex_num(const char *src, size_t *pos) {
 		}
 
 		while (ishex(*src) || *src == '_') {
+			if (*src != '_') {
+				t->value = realloc(t->value, t->size + 1);
+				t->value[t->size++] = *src;
+			}
+
+			src++;
+			(*pos)++;
+		}
+	} else if (*src == '0' && *(src + 1) == 'b') {
+		t->value = realloc(t->value, t->size + 2);
+		t->value[t->size++] = *src;
+		t->value[t->size++] = *(src + 1);
+		src += 2;
+		(*pos) += 2;
+
+		if (!isbin(*src)) {
+			printf("Error: Invalid binary value (l: %d, p: %d)\n", lineno, (int)(*pos));
+			return NULL;
+		}
+
+		while (isbin(*src) || *src == '_') {
 			if (*src != '_') {
 				t->value = realloc(t->value, t->size + 1);
 				t->value[t->size++] = *src;
@@ -207,7 +232,7 @@ token_t *tokenize(const char *src, size_t len) {
 		int start = i;
 		if (isletter(c) || c == '_')
 			tok = lex_id(src + i, &i);
-		else if (isnum(c) || (c == '-' && isnum(cn)) || (c == '0' && cn == 'x'))
+		else if (isnum(c) || (c == '-' && isnum(cn)) || (c == '0' && cn == 'x') || (c == '0' && cn == 'b'))
 			tok = lex_num(src + i, &i);
 		else if (c == ';')
 			tok = lex_end(src + i, &i);
