@@ -455,10 +455,11 @@ static int eval_memws(inst_t *inst, size_t *i) {
 
     lit_t *str = inst->arg->next;
 
-    if (!off_valid(off, inst->arg, strlen(str->str)))
+    size_t size = strlen(str->str);
+    if (!off_valid(off, inst->arg, size))
         return 1;
 
-    for (size_t i = 0; i < strlen(str->str); i++)
+    for (size_t i = 0; i < size; i++)
         vm.mem.field[off + i] = str->str[i];
     return 0;
 }
