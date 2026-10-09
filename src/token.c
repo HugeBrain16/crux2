@@ -72,9 +72,9 @@ static token_t *lex_num(const char *src, size_t *pos) {
 
 	size_t c = 0;
 	if (*src == '0' && *(src + 1) == 'x') {
-		t->value = realloc(t->value, t->size + 2);
-		t->value[t->size++] = *src;
-		t->value[t->size++] = *(src + 1);
+		t->value = realloc(t->value, t->size += 2);
+		t->value[c++] = *src;
+		t->value[c++] = *(src + 1);
 		src += 2;
 		(*pos) += 2;
 
@@ -96,9 +96,9 @@ static token_t *lex_num(const char *src, size_t *pos) {
 			(*pos)++;
 		}
 	} else if (*src == '0' && *(src + 1) == 'b') {
-		t->value = realloc(t->value, t->size + 2);
-		t->value[t->size++] = *src;
-		t->value[t->size++] = *(src + 1);
+		t->value = realloc(t->value, t->size += 2);
+		t->value[c++] = *src;
+		t->value[c++] = *(src + 1);
 		src += 2;
 		(*pos) += 2;
 
@@ -122,8 +122,8 @@ static token_t *lex_num(const char *src, size_t *pos) {
 	} else {
 		// negative
 		if (*src == '-') {
-			t->value = realloc(t->value, t->size + 1);
-			t->value[t->size++] = *src;
+			t->value = realloc(t->value, t->size += 1);
+			t->value[c++] = *src;
 			src++;
 			(*pos)++;
 		}
