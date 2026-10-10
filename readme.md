@@ -10,8 +10,8 @@ Assembly like interpreter
 
 Edit VM specs in [vm.h](include/vm.h)  
 default specs:  
-- REG: `4`
-- MEM: `256`
+- REG: `32`
+- MEM: `65536`
 
 ```sh
 git clone https://github.com/hugebrain16/crux2

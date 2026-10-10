@@ -118,6 +118,7 @@ static int eval_dump(inst_t *inst, size_t *i) {
 }
 
 static int eval_memdump(inst_t *inst, size_t *i) {
+    /*
     int col = 0;
     printf("MEM 0x%08x - 0x%08x\n", (unsigned)(vm.mem.start - vm.mem.field), (unsigned)(vm.mem.end - vm.mem.field));
     for (size_t i = 0; i < sizeof(vm.mem.field); i++) {
@@ -131,6 +132,14 @@ static int eval_memdump(inst_t *inst, size_t *i) {
             col = 0;
         }
     }
+    */
+
+    FILE *f = fopen("memory.bin", "wb");
+    if (!f) {
+        printf("Error: Failed to dump memory (l: %d, p: %d)\n", inst->lineno, inst->pos);
+        return 1;
+    }
+    fwrite(vm.mem.field, 1, sizeof(vm.mem.field), f);
     return 0;
 }
 

@@ -5,8 +5,8 @@
 
 #include <stdint.h>
 
-#define VM_REG 4
-#define VM_MEM 256
+#define VM_REG 32
+#define VM_MEM 65536
 
 typedef struct {
 	uint8_t type;
