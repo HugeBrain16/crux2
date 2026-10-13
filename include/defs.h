@@ -1,1 +1,1 @@
-#define CRUX_VERSION 1
+#define CRUX_VERSION 2
