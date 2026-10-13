@@ -1,5 +1,11 @@
 select 0; load_i 0; # reserve 0
 select 31; load_i 0xa000; # set stack pointer
+
+# check version, version 1 doesn't have call & return yet
+select 1; load_i $cx_ver;
+select 2; load_i 2;
+jump_eq end 1;
+
 jump main;
 
 # args: r1 = str
@@ -8,8 +14,27 @@ label str_print; # {
         select 2; memr8 %1;
         printchar;
         select 1; inc;
-        select 2;
-        jump_ne str_print_iter 0;
+        select 2; jump_ne str_print_iter 0;
+    select 31; return;
+# }
+
+# args: r1 = str
+label str_println; # {
+    select 31; call str_print;
+    select 2; load_i 0x0a;
+    printchar;
+    select 31; return;
+# }
+
+# args: r1 = str, r2 = result
+label str_length; # {
+    select 2; load_i 0;
+    label str_length_iter;
+        select 3; memr8 %1;
+        select 1; inc;
+        select 2; inc;
+        select 3; jump_ne str_length_iter 0;
+    select 2; dec;
     select 31; return;
 # }
 
@@ -34,7 +59,8 @@ label str_concat; # {
 
 label main; # {
     memws 0xa0a0 "hello";
-    memws 0xa0b0 "world";
+    memws 0xa0b0 " world";
+    memws 0xa0d0 "length: ";
 
     select 1; load_i 0xa0a0;
     select 2; load_i 0xa0b0;
@@ -42,5 +68,14 @@ label main; # {
     select 31; call str_concat;
 
     select 1; load_i 0xa0c0;
+    select 31; call str_println;
+
+    select 1; load_i 0xa0d0;
     select 31; call str_print;
+    select 1; load_i 0xa0c0;
+    select 31; call str_length;
+    select 2; printnum;
+    select 31; call str_println;
 # }
+
+label end;
