@@ -23,12 +23,25 @@ static int reg_valid(int r, lit_t *arg) {
 
 static int get_val(lit_t *arg, int *val) {
     if (arg->type == L_REF) {
-        if (!reg_valid(arg->ref, arg))
+        if (!reg_valid(arg->int_type, arg))
             return 0;
 
-        *val = vm.r[arg->ref].val;
+        *val = vm.r[arg->int_type].val;
+    } else if (arg->type == L_INT) {
+
+        // resolve internal reference
+        char *id = arg->char_type;
+        if      (!strcmp(id, "mem_end")) *val = (int)(vm.mem.end - vm.mem.field);
+        else if (!strcmp(id, "mem_current")) *val = (int)(vm.mem.current - vm.mem.field);
+        else if (!strcmp(id, "mem_start")) *val = (int)(vm.mem.start - vm.mem.field);
+        else if (!strcmp(id, "reg_count")) *val = reg_count();
+
+        else {
+            printf("Error: Unknown internal name = %s (l: %d, p: %d)\n", id, arg->lineno, arg->pos);
+            return 0;
+        }
     } else {
-        *val = arg->num;
+        *val = arg->int_type;
     }
 
     return 1;
@@ -154,7 +167,7 @@ static int eval_printnum(inst_t *inst, size_t *i) {
 }
 
 static int eval_jump(inst_t *inst, size_t *i) {
-    int j = labels[inst->arg->id];
+    int j = labels[inst->arg->uid];
     if (j == -1) {
         printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
         return 1;
@@ -165,7 +178,7 @@ static int eval_jump(inst_t *inst, size_t *i) {
 }
 
 static int eval_jump_eq(inst_t *inst, size_t *i) {
-    int j = labels[inst->arg->id];
+    int j = labels[inst->arg->uid];
     if (j == -1) {
         printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
         return 1;
@@ -182,7 +195,7 @@ static int eval_jump_eq(inst_t *inst, size_t *i) {
 }
 
 static int eval_jump_ne(inst_t *inst, size_t *i) {
-    int j = labels[inst->arg->id];
+    int j = labels[inst->arg->uid];
     if (j == -1) {
         printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
         return 1;
@@ -199,7 +212,7 @@ static int eval_jump_ne(inst_t *inst, size_t *i) {
 }
 
 static int eval_jump_lt(inst_t *inst, size_t *i) {
-    int j = labels[inst->arg->id];
+    int j = labels[inst->arg->uid];
     if (j == -1) {
         printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
         return 1;
@@ -216,7 +229,7 @@ static int eval_jump_lt(inst_t *inst, size_t *i) {
 }
 
 static int eval_jump_gt(inst_t *inst, size_t *i) {
-    int j = labels[inst->arg->id];
+    int j = labels[inst->arg->uid];
     if (j == -1) {
         printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
         return 1;
@@ -233,7 +246,7 @@ static int eval_jump_gt(inst_t *inst, size_t *i) {
 }
 
 static int eval_jump_le(inst_t *inst, size_t *i) {
-    int j = labels[inst->arg->id];
+    int j = labels[inst->arg->uid];
     if (j == -1) {
         printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
         return 1;
@@ -250,7 +263,7 @@ static int eval_jump_le(inst_t *inst, size_t *i) {
 }
 
 static int eval_jump_ge(inst_t *inst, size_t *i) {
-    int j = labels[inst->arg->id];
+    int j = labels[inst->arg->uid];
     if (j == -1) {
         printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
         return 1;
@@ -464,12 +477,12 @@ static int eval_memws(inst_t *inst, size_t *i) {
 
     lit_t *str = inst->arg->next;
 
-    size_t size = strlen(str->str);
+    size_t size = strlen(str->char_type);
     if (!off_valid(off, inst->arg, size))
         return 1;
 
     for (size_t i = 0; i < size; i++)
-        vm.mem.field[off + i] = str->str[i];
+        vm.mem.field[off + i] = str->char_type[i];
     return 0;
 }
 
@@ -516,8 +529,8 @@ static int index_labels() {
     for (size_t i = 0; i < g_insts->count; i++) {
         inst_t *inst = g_insts->array[i];
 
-        if (inst->type == IN_LABEL && inst->arg->id > max_id)
-            max_id = inst->arg->id;
+        if (inst->type == IN_LABEL && inst->arg->uid > max_id)
+            max_id = inst->arg->uid;
     }
 
     labels = malloc(sizeof(*labels) * (max_id + 1));
@@ -528,8 +541,8 @@ static int index_labels() {
         inst_t *inst = g_insts->array[i];
 
         if (inst->type == IN_LABEL) {
-            if (labels[inst->arg->id] == -1)
-                labels[inst->arg->id] = i;
+            if (labels[inst->arg->uid] == -1)
+                labels[inst->arg->uid] = i;
             else {
                 printf("Error: Duplicate label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
                 return 0;

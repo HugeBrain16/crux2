@@ -167,6 +167,15 @@ static token_t *lex_ref(const char *src, size_t *pos) {
 	return t;
 }
 
+static token_t *lex_int(const char *src, size_t *pos) {
+	token_t *t = token_def(TOKEN_INT, "$", 1);
+
+	src++;
+	(*pos)++;
+
+	return t;
+}
+
 static token_t *lex_str(const char *src, size_t *pos) {
 	token_t *t = token_new(TOKEN_STR);
 
@@ -262,6 +271,8 @@ token_t *tokenize(const char *src, size_t len) {
 			tok = lex_str(src + i, &i);
 		else if (c == '%')
 			tok = lex_ref(src + i, &i);
+		else if (c == '$')
+			tok = lex_int(src + i, &i);
 		else {
 			printf("Error: Invalid syntax (l: %d, p: %d)\n", lineno, (int)i);
 			break;

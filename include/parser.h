@@ -49,6 +49,7 @@ typedef enum {
     L_NUM,
     L_STR,
     L_REF,
+    L_INT,
 } lit_e;
 
 typedef struct lit {
@@ -57,11 +58,9 @@ typedef struct lit {
     int pos;
     struct lit *next;
     union {
-        uint32_t id;
-        int num;
-        int ref;
-        char *gen;
-        char *str;
+        uint32_t uid;
+        int int_type;
+        char *char_type;
     };
 } lit_t;
 

@@ -83,6 +83,20 @@ static token_t *parse_op(token_t *prev, token_t *arg) {
         }
  
         return num->next;
+    } else if (arg->type == TOKEN_INT) {
+        token_t *id = arg->next;
+
+        if (!id) {
+            printf("Error: Internal reference not followed by identifier (l: %d, p: %d)\n", arg->lineno, arg->pos);
+            return NULL;
+        }
+
+        if (id->type != TOKEN_ID || id->pos - arg->pos != 1) {
+            printf("Error: Internal reference not followed by identifier (l: %d, p: %d)\n", arg->lineno, arg->pos);
+            return NULL;
+        }
+
+        return id->next;
     }
  
     if (arg->type != TOKEN_NUM) {
@@ -190,30 +204,36 @@ static lit_t *parse_args(token_t *arg) {
             case TOKEN_NUM:
                 lit->type = L_NUM;
                 if (curr->size > 1 && *curr->value == '0' && *(curr->value + 1) == 'b')
-                    lit->num = strtol(curr->value += 2, NULL, 2);
+                    lit->int_type = strtol(curr->value += 2, NULL, 2);
                 else
-                    lit->num = strtol(curr->value, NULL, 0);
+                    lit->int_type = strtol(curr->value, NULL, 0);
                 break;
             case TOKEN_ID:
                 lit->type = L_ID;
-                lit->id = get_index(curr->value);
+                lit->uid = get_index(curr->value);
                 break;
             case TOKEN_STR:
                 lit->type = L_STR;
 
                 char *str = malloc(curr->size + 1);
                 unescape(str, curr->value, curr->size + 1);
-                lit->str = str;
+                lit->char_type = str;
                 break;
             case TOKEN_REF:
                 lit->type = L_REF;
 
                 curr = curr->next;
-                lit->ref = strtol(curr->value, NULL, 0);
+                lit->int_type = strtol(curr->value, NULL, 0);
+                break;
+            case TOKEN_INT:
+                lit->type = L_INT;
+
+                curr = curr->next;
+                lit->char_type = curr->value;
                 break;
             default:
                 lit->type = L_GEN;
-                lit->gen = curr->value;
+                lit->char_type = curr->value;
                 break;
         }
 
