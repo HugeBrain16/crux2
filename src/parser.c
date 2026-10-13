@@ -204,7 +204,9 @@ static lit_t *parse_args(token_t *arg) {
             case TOKEN_NUM:
                 lit->type = L_NUM;
                 if (curr->size > 1 && *curr->value == '0' && *(curr->value + 1) == 'b')
-                    lit->int_type = strtol(curr->value += 2, NULL, 2);
+                    lit->int_type = strtol(curr->value + 2, NULL, 2);
+                else if (curr->size > 1 && *curr->value == '0' && *(curr->value + 1) == 'x')
+                    lit->int_type = strtol(curr->value + 2, NULL, 16);
                 else
                     lit->int_type = strtol(curr->value, NULL, 0);
                 break;
@@ -290,6 +292,9 @@ static parser_t parsers[] = {
     {"jump_gt", IN_JUMP_GT, parse_jump_cond},
     {"jump_le", IN_JUMP_LE, parse_jump_cond},
     {"jump_ge", IN_JUMP_GE, parse_jump_cond},
+
+    {"call", IN_CALL, parse_id_arg},
+    {"return", IN_RETURN, parse_no_arg},
 
     {"memw8", IN_MEMW8, parse_num_arg2},
     {"memr8", IN_MEMR8, parse_num_arg},

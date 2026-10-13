@@ -30,6 +30,8 @@ typedef enum {
     IN_JUMP_GT,
     IN_JUMP_LE,
     IN_JUMP_GE,
+    IN_CALL,
+    IN_RETURN,
     IN_MEMW8,
     IN_MEMR8,
     IN_MEMW16,

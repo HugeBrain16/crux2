@@ -518,6 +518,29 @@ static int eval_shift_l(inst_t *inst, size_t *i) {
     return 0;
 }
 
+static int eval_call(inst_t *inst, size_t *i) {
+    int sp = vm.r[vm.a].val;
+    size_t ret = *i + 1;
+
+    sp -= sizeof(size_t);
+    memcpy(vm.mem.field + sp, &ret, sizeof(size_t));
+    vm.r[vm.a].val = sp;
+
+    return eval_jump(inst, i);
+}
+
+static int eval_return(inst_t *inst, size_t *i) {
+    int sp = vm.r[vm.a].val;
+    size_t ret;
+
+    memcpy(&ret, vm.mem.field + sp, sizeof(size_t));
+    sp += sizeof(size_t);
+    vm.r[vm.a].val = sp;
+
+    *i = ret - 1;
+    return 0;
+}
+
 static int eval_shift_r(inst_t *inst, size_t *i) {
     int src;
     if (!get_reg(inst->arg, &src))
@@ -594,6 +617,8 @@ int exec(insts_t *insts) {
             case IN_JUMP_GT: err = eval_jump_gt(inst, &i); break;
             case IN_JUMP_LE: err = eval_jump_le(inst, &i); break;
             case IN_JUMP_GE: err = eval_jump_ge(inst, &i); break;
+            case IN_CALL: err = eval_call(inst, &i); break;
+            case IN_RETURN: err = eval_return(inst, &i); break;
             case IN_DUMP: err = eval_dump(inst, &i); break;
             case IN_MEMDUMP: err = eval_memdump(inst, &i); break;
             case IN_PRINTCHAR: err = eval_printchar(inst, &i); break;

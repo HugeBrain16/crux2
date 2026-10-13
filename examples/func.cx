@@ -1,0 +1,46 @@
+select 0; load_i 0; # reserve 0
+select 31; load_i 0xa000; # set stack pointer
+jump main;
+
+# args: r1 = str
+label str_print; # {
+    label str_print_iter;
+        select 2; memr8 %1;
+        printchar;
+        select 1; inc;
+        select 2;
+        jump_ne str_print_iter 0;
+    select 31; return;
+# }
+
+# args: r1 = str1, r2 = str2, r3 = result
+label str_concat; # {
+    label str_concat_iter_str1;
+        select 4; memr8 %1; memw8 %3 4;
+        select 3; inc;
+        select 1; inc;
+        select 4; jump_ne str_concat_iter_str1 0;
+    
+    select 3; dec;
+
+    label str_concat_iter_str2;
+        select 5; memr8 %2; memw8 %3 5;
+        select 3; inc;
+        select 2; inc;
+        select 5; jump_ne str_concat_iter_str2 0;
+
+    select 31; return;
+# }
+
+label main; # {
+    memws 0xa0a0 "hello";
+    memws 0xa0b0 "world";
+
+    select 1; load_i 0xa0a0;
+    select 2; load_i 0xa0b0;
+    select 3; load_i 0xa0c0;
+    select 31; call str_concat;
+
+    select 1; load_i 0xa0c0;
+    select 31; call str_print;
+# }
