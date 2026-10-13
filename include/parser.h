@@ -39,6 +39,7 @@ typedef enum {
     IN_MEMWS,
     IN_DUMP,
     IN_MEMDUMP,
+    IN_TIME,
     IN_PRINTCHAR,
     IN_PRINTNUM,
 } inst_e;

@@ -1,5 +1,7 @@
 #include <vm.h>
+#include <defs.h>
 
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,6 +37,7 @@ static int get_val(lit_t *arg, int *val) {
         else if (!strcmp(id, "mem_current")) *val = (int)(vm.mem.current - vm.mem.field);
         else if (!strcmp(id, "mem_start")) *val = (int)(vm.mem.start - vm.mem.field);
         else if (!strcmp(id, "reg_count")) *val = reg_count();
+        else if (!strcmp(id, "cx_ver")) *val = CRUX_VERSION;
 
         else {
             printf("Error: Unknown internal name = %s (l: %d, p: %d)\n", id, arg->lineno, arg->pos);
@@ -496,6 +499,11 @@ static int eval_dec(inst_t *inst, size_t *i) {
     return 0;
 }
 
+static int eval_time(inst_t *inst, size_t *i) {
+    vm.r[vm.a].val = clock() * 1000 / CLOCKS_PER_SEC;
+    return 0;
+}
+
 static int eval_shift_l(inst_t *inst, size_t *i) {
     int src;
     if (!get_reg(inst->arg, &src))
@@ -600,6 +608,7 @@ int exec(insts_t *insts) {
             case IN_MEMWS: err = eval_memws(inst, &i); break;
             case IN_INC: err = eval_inc(inst, &i); break;
             case IN_DEC: err = eval_dec(inst, &i); break;
+            case IN_TIME: err = eval_time(inst, &i); break;
             default:
                 err = 1;
                 printf("Error: Unhandled instruction (l: %d, p: %d)\n", inst->lineno, inst->pos);
