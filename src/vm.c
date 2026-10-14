@@ -28,7 +28,7 @@ static int get_val(lit_t *arg, int *val) {
         if (!reg_valid(arg->int_type, arg))
             return 0;
 
-        *val = vm.r[arg->int_type].val;
+        *val = vm.r[arg->int_type];
     } else if (arg->type == L_INT) {
 
         // resolve internal reference
@@ -82,7 +82,7 @@ static int eval_load_i(inst_t *inst, size_t *i) {
     if (!get_val(inst->arg, &v))
         return 1;
 
-    vm.r[vm.a].val = v;
+    vm.r[vm.a] = v;
     return 0;
 }
 
@@ -91,7 +91,7 @@ static int eval_load(inst_t *inst, size_t *i) {
     if (!get_reg(inst->arg, &r))
         return 1;
 
-    vm.r[vm.a].val = vm.r[r].val;
+    vm.r[vm.a] = vm.r[r];
     return 0;
 }
 
@@ -99,7 +99,7 @@ static int eval_dump(inst_t *inst, size_t *i) {
     printf("A: %d\n", vm.a);
     printf("F: %d\n", vm.f);
     for (int i = 0; i < reg_count(); i++)
-        printf("R%d: %d\n", i, vm.r[i].val);
+        printf("R%d: %d\n", i, vm.r[i]);
     return 0;
 }
 
@@ -130,12 +130,12 @@ static int eval_memdump(inst_t *inst, size_t *i) {
 }
 
 static int eval_printchar(inst_t *inst, size_t *i) {
-    printf("%c", (char)vm.r[vm.a].val);
+    printf("%c", (char)vm.r[vm.a]);
     return 0;
 }
 
 static int eval_printnum(inst_t *inst, size_t *i) {
-    printf("%d", vm.r[vm.a].val);
+    printf("%d", vm.r[vm.a]);
     return 0;
 }
 
@@ -162,7 +162,7 @@ static int eval_jump_eq(inst_t *inst, size_t *i) {
     if (!get_reg(reg, &r))
         return 1;
 
-    if (vm.r[vm.a].val == vm.r[r].val)
+    if (vm.r[vm.a] == vm.r[r])
         *i = j;
     return 0;
 }
@@ -179,7 +179,7 @@ static int eval_jump_ne(inst_t *inst, size_t *i) {
     if (!get_reg(reg, &r))
         return 1;
 
-    if (vm.r[vm.a].val != vm.r[r].val)
+    if (vm.r[vm.a] != vm.r[r])
         *i = j;
     return 0;
 }
@@ -196,7 +196,7 @@ static int eval_jump_lt(inst_t *inst, size_t *i) {
     if (!get_reg(reg, &r))
         return 1;
 
-    if (vm.r[vm.a].val < vm.r[r].val)
+    if (vm.r[vm.a] < vm.r[r])
         *i = j;
     return 0;
 }
@@ -213,7 +213,7 @@ static int eval_jump_gt(inst_t *inst, size_t *i) {
     if (!get_reg(reg, &r))
         return 1;
 
-    if (vm.r[vm.a].val > vm.r[r].val)
+    if (vm.r[vm.a] > vm.r[r])
         *i = j;
     return 0;
 }
@@ -230,7 +230,7 @@ static int eval_jump_le(inst_t *inst, size_t *i) {
     if (!get_reg(reg, &r))
         return 1;
 
-    if (vm.r[vm.a].val <= vm.r[r].val)
+    if (vm.r[vm.a] <= vm.r[r])
         *i = j;
     return 0;
 }
@@ -247,7 +247,7 @@ static int eval_jump_ge(inst_t *inst, size_t *i) {
     if (!get_reg(reg, &r))
         return 1;
 
-    if (vm.r[vm.a].val >= vm.r[r].val)
+    if (vm.r[vm.a] >= vm.r[r])
         *i = j;
     return 0;
 }
@@ -261,7 +261,7 @@ static int eval_add(inst_t *inst, size_t *i) {
     if (!get_reg(inst->arg, &r))
         return 1;
 
-    vm.r[vm.a].val += vm.r[r].val;
+    vm.r[vm.a] += vm.r[r];
     return 0;
 }
 
@@ -270,7 +270,7 @@ static int eval_sub(inst_t *inst, size_t *i) {
     if (!get_reg(inst->arg, &r))
         return 1;
 
-    vm.r[vm.a].val -= vm.r[r].val;
+    vm.r[vm.a] -= vm.r[r];
     return 0;
 }
 
@@ -279,7 +279,7 @@ static int eval_mul(inst_t *inst, size_t *i) {
     if (!get_reg(inst->arg, &r))
         return 1;
 
-    vm.r[vm.a].val *= vm.r[r].val;
+    vm.r[vm.a] *= vm.r[r];
     return 0;
 }
 
@@ -288,12 +288,12 @@ static int eval_div(inst_t *inst, size_t *i) {
     if (!get_reg(inst->arg, &r))
         return 1;
 
-    if (vm.r[r].val == 0) {
+    if (vm.r[r] == 0) {
         printf("Error: Division by zero (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
-    vm.r[vm.a].val /= vm.r[r].val;
+    vm.r[vm.a] /= vm.r[r];
     return 0;
 }
 
@@ -302,12 +302,12 @@ static int eval_mod(inst_t *inst, size_t *i) {
     if (!get_reg(inst->arg, &r))
         return 1;
 
-    if (vm.r[r].val == 0) {
+    if (vm.r[r] == 0) {
         printf("Error: Division by zero (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
-    vm.r[vm.a].val %= vm.r[r].val;
+    vm.r[vm.a] %= vm.r[r];
     return 0;
 }
 
@@ -316,7 +316,7 @@ static int eval_and(inst_t *inst, size_t *i) {
     if (!get_reg(inst->arg, &r))
         return 1;
 
-    vm.r[vm.a].val &= vm.r[r].val;
+    vm.r[vm.a] &= vm.r[r];
     return 0;
 }
 
@@ -325,7 +325,7 @@ static int eval_or(inst_t *inst, size_t *i) {
     if (!get_reg(inst->arg, &r))
         return 1;
 
-    vm.r[vm.a].val |= vm.r[r].val;
+    vm.r[vm.a] |= vm.r[r];
     return 0;
 }
 
@@ -334,7 +334,7 @@ static int eval_xor(inst_t *inst, size_t *i) {
     if (!get_reg(inst->arg, &r))
         return 1;
 
-    vm.r[vm.a].val ^= vm.r[r].val;
+    vm.r[vm.a] ^= vm.r[r];
     return 0;
 }
 
@@ -343,7 +343,7 @@ static int eval_not(inst_t *inst, size_t *i) {
     if (!get_reg(inst->arg, &r))
         return 1;
 
-    vm.r[vm.a].val = ~vm.r[r].val;
+    vm.r[vm.a] = ~vm.r[r];
     return 0;
 }
 
@@ -361,7 +361,7 @@ static int eval_memw8(inst_t *inst, size_t *i) {
     if (!get_reg(reg, &r))
         return 1;
 
-    vm.mem[off] = (uint8_t)vm.r[r].val;
+    vm.mem[off] = (uint8_t)vm.r[r];
     return 0;
 }
 
@@ -373,7 +373,7 @@ static int eval_memr8(inst_t *inst, size_t *i) {
     if (!off_valid(off, inst->arg, sizeof(uint8_t)))
         return 1;
 
-    vm.r[vm.a].val = vm.mem[off];
+    vm.r[vm.a] = vm.mem[off];
     return 0;
 }
 
@@ -391,7 +391,7 @@ static int eval_memw16(inst_t *inst, size_t *i) {
     if (!get_reg(reg, &r))
         return 1;
 
-    uint16_t v = (uint16_t)vm.r[r].val;
+    uint16_t v = (uint16_t)vm.r[r];
     memcpy(vm.mem + off, &v, sizeof(v));
     return 0;
 }
@@ -406,7 +406,7 @@ static int eval_memr16(inst_t *inst, size_t *i) {
 
     uint16_t v;
     memcpy(&v, vm.mem + off, sizeof(v));
-    vm.r[vm.a].val = v;
+    vm.r[vm.a] = v;
     return 0;
 }
 
@@ -424,7 +424,7 @@ static int eval_memw32(inst_t *inst, size_t *i) {
     if (!get_reg(reg, &r))
         return 1;
 
-    uint32_t v = (uint32_t)vm.r[r].val;
+    uint32_t v = (uint32_t)vm.r[r];
     memcpy(vm.mem + off, &v, sizeof(v));
     return 0;
 }
@@ -439,7 +439,7 @@ static int eval_memr32(inst_t *inst, size_t *i) {
 
     uint32_t v;
     memcpy(&v, vm.mem + off, sizeof(v));
-    vm.r[vm.a].val = v;
+    vm.r[vm.a] = v;
     return 0;
 }
 
@@ -460,17 +460,17 @@ static int eval_memws(inst_t *inst, size_t *i) {
 }
 
 static int eval_inc(inst_t *inst, size_t *i) {
-    vm.r[vm.a].val += 1;
+    vm.r[vm.a] += 1;
     return 0;
 }
 
 static int eval_dec(inst_t *inst, size_t *i) {
-    vm.r[vm.a].val -= 1;
+    vm.r[vm.a] -= 1;
     return 0;
 }
 
 static int eval_time(inst_t *inst, size_t *i) {
-    vm.r[vm.a].val = clock() * 1000 / CLOCKS_PER_SEC;
+    vm.r[vm.a] = clock() * 1000 / CLOCKS_PER_SEC;
     return 0;
 }
 
@@ -484,28 +484,28 @@ static int eval_shift_l(inst_t *inst, size_t *i) {
     if (!get_reg(next, &dst))
         return 1;
 
-    vm.r[dst].val = vm.r[vm.a].val << vm.r[src].val;
+    vm.r[dst] = vm.r[vm.a] << vm.r[src];
     return 0;
 }
 
 static int eval_call(inst_t *inst, size_t *i) {
-    int sp = vm.r[vm.a].val;
+    int sp = vm.r[vm.a];
     size_t ret = *i + 1;
 
     sp -= sizeof(size_t);
     memcpy(vm.mem + sp, &ret, sizeof(size_t));
-    vm.r[vm.a].val = sp;
+    vm.r[vm.a] = sp;
 
     return eval_jump(inst, i);
 }
 
 static int eval_return(inst_t *inst, size_t *i) {
-    int sp = vm.r[vm.a].val;
+    int sp = vm.r[vm.a];
     size_t ret;
 
     memcpy(&ret, vm.mem + sp, sizeof(size_t));
     sp += sizeof(size_t);
-    vm.r[vm.a].val = sp;
+    vm.r[vm.a] = sp;
 
     *i = ret - 1;
     return 0;
@@ -521,7 +521,7 @@ static int eval_shift_r(inst_t *inst, size_t *i) {
     if (!get_reg(next, &dst))
         return 1;
 
-    vm.r[dst].val = vm.r[vm.a].val >> vm.r[src].val;
+    vm.r[dst] = vm.r[vm.a] >> vm.r[src];
     return 0;
 }
 
