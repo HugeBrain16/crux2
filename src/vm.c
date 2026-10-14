@@ -542,6 +542,11 @@ static int eval_shift_l(inst_t *inst, size_t *i) {
 static int eval_call(inst_t *inst, size_t *i) {
     int sp = vm.r[vm.a];
     size_t ret = *i + 1;
+    
+    if (sp < (int)sizeof(size_t) || sp > VM_MEM) {
+        fprintf(stderr, "Error: Stack pointer out of range = %d (0x%08x) (l: %d, p: %d)\n", sp, sp, inst->lineno, inst->pos);
+        return 1;
+    }
 
     sp -= sizeof(size_t);
     memcpy(vm.mem + sp, &ret, sizeof(size_t));
@@ -555,6 +560,11 @@ static int eval_return(inst_t *inst, size_t *i) {
 
     int sp = vm.r[vm.a];
     size_t ret;
+
+    if (sp < (int)sizeof(size_t) || sp > VM_MEM) {
+        fprintf(stderr, "Error: Stack pointer out of range %d (0x%08x) (l: %d, p: %d)\n", sp, sp, inst->lineno, inst->pos);
+        return 1;
+    }
 
     memcpy(&ret, vm.mem + sp, sizeof(size_t));
     sp += sizeof(size_t);

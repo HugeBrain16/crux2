@@ -212,15 +212,19 @@ static lit_t *parse_args(token_t *arg) {
                     c++;
 
                     switch(*c) {
-                        case 'b':
+                        case 'b': case 'B':
                             lit->int_type = strtol(curr->value + 2, NULL, 2);
                             break;
-                        case 'x':
+                        case 'x': case 'X':
                             lit->int_type = strtol(curr->value + 2, NULL, 16);
+                            break;
+                        default:
+                            lit->int_type = strtol(curr->value, NULL, 0);
                             break;
                     }
                 } else
                     lit->int_type = strtol(curr->value, NULL, 0);
+                lit->repr = curr->value;
                 break;
             }
             case TOKEN_ID:
@@ -232,7 +236,7 @@ static lit_t *parse_args(token_t *arg) {
             {
                 lit->type = L_STR;
 
-                char *str = malloc(curr->size + 1);
+                char *str = malloc(strlen(curr->value) + 1);
                 unescape(str, curr->value, curr->size + 1);
                 lit->char_type = str;
                 lit->repr = curr->value;
@@ -245,7 +249,7 @@ static lit_t *parse_args(token_t *arg) {
                 curr = curr->next;
                 lit->int_type = strtol(curr->value, NULL, 0);
 
-                char *repr = malloc(curr->size + 1);
+                char *repr = malloc(strlen(curr->value) + 1);
                 sprintf(repr, "%%%s", curr->value);
                 lit->repr = repr;
                 break;
@@ -257,7 +261,7 @@ static lit_t *parse_args(token_t *arg) {
                 curr = curr->next;
                 lit->char_type = curr->value;
 
-                char *repr = malloc(curr->size + 1);
+                char *repr = malloc(strlen(curr->value) + 1);
                 sprintf(repr, "$%s", curr->value);
                 break;
             }
@@ -397,7 +401,7 @@ insts_t *parse(token_t *tokens) {
         }
     }
 
-    if (crux_debug) {
+    if (crux_debug && ids) {
         for (size_t i = 0; i < ids->count; i++) {
             id2_t *id = ids->array[i];
 

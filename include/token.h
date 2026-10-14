@@ -10,7 +10,7 @@ typedef enum token_enum {
 	TOKEN_STR,
 	TOKEN_END, // ;
 	TOKEN_REF, // % register reference
-	TOKEN_INT, // $ access interal values
+	TOKEN_INT, // $ access internal values
 } token_e;
 
 typedef struct token {
