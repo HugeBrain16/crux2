@@ -23,7 +23,7 @@ static int reg_valid(int r, lit_t *arg) {
     return 1;
 }
 
-static int get_val(lit_t *arg, int *val) {
+static int get_val(lit_t *arg, int64_t *val) {
     if (arg->type == L_REF) {
         if (!reg_valid(arg->int_type, arg))
             return 0;
@@ -36,6 +36,9 @@ static int get_val(lit_t *arg, int *val) {
         if      (!strcmp(id, "mem_size")) *val = VM_MEM;
         else if (!strcmp(id, "reg_count")) *val = reg_count();
         else if (!strcmp(id, "cx_ver")) *val = CRUX_VERSION;
+        else if (!strcmp(id, "stdout")) *val = (uintptr_t)stdout;
+        else if (!strcmp(id, "stdin")) *val = (uintptr_t)stdin;
+        else if (!strcmp(id, "stderr")) *val = (uintptr_t)stderr;
 
         else {
             fprintf(stderr, "Error: Unknown internal name = %s (l: %d, p: %d)\n", id, arg->lineno, arg->pos);
@@ -48,7 +51,7 @@ static int get_val(lit_t *arg, int *val) {
     return 1;
 }
 
-static int get_reg(lit_t *arg, int *val) {
+static int get_reg(lit_t *arg, int64_t *val) {
     if (!get_val(arg, val))
         return 0;
 
@@ -64,10 +67,41 @@ static int off_valid(int off, lit_t *arg, size_t size) {
     return 1;
 }
 
+static int index_labels() {
+    size_t max_id = 0;
+    for (size_t i = 0; i < g_insts->count; i++) {
+        inst_t *inst = g_insts->array[i];
+
+        if (inst->type == IN_LABEL && inst->arg->uid > max_id)
+            max_id = inst->arg->uid;
+    }
+
+    labels = malloc(sizeof(*labels) * (max_id + 1));
+    for (size_t i = 0; i <= max_id; i++)
+        labels[i] = -1;
+
+    for (size_t i = 0; i < g_insts->count; i++) {
+        inst_t *inst = g_insts->array[i];
+
+        if (inst->type == IN_LABEL) {
+            if (labels[inst->arg->uid] == -1)
+                labels[inst->arg->uid] = i;
+            else {
+                fprintf(stderr, "Error: Duplicate label = %s (l: %d, p: %d)\n", inst->arg->repr, inst->arg->lineno, inst->arg->pos);
+                return 0;
+            }
+        }
+    }
+
+    return 1;
+}
+
+/* -- eval instructions start */
+
 static int eval_select(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int r;
+    int64_t r;
     if (!get_reg(inst->arg, &r))
         return 1;
 
@@ -78,7 +112,7 @@ static int eval_select(inst_t *inst, size_t *i) {
 static int eval_load_i(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int v;
+    int64_t v;
     if (!get_val(inst->arg, &v))
         return 1;
 
@@ -89,7 +123,7 @@ static int eval_load_i(inst_t *inst, size_t *i) {
 static int eval_load(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int r;
+    int64_t r;
     if (!get_reg(inst->arg, &r))
         return 1;
 
@@ -103,7 +137,7 @@ static int eval_dump(inst_t *inst, size_t *i) {
     printf("A: %d\n", vm.a);
     printf("F: %d\n", vm.f);
     for (int i = 0; i < reg_count(); i++)
-        printf("R%d: %d\n", i, vm.r[i]);
+        printf("R%d: %ld\n", i, vm.r[i]);
     return 0;
 }
 
@@ -135,20 +169,6 @@ static int eval_memdump(inst_t *inst, size_t *i) {
     return 0;
 }
 
-static int eval_printchar(inst_t *inst, size_t *i) {
-    UNUSED(inst); UNUSED(i);
-
-    printf("%c", (char)vm.r[vm.a]);
-    return 0;
-}
-
-static int eval_printnum(inst_t *inst, size_t *i) {
-    UNUSED(inst); UNUSED(i);
-
-    printf("%d", vm.r[vm.a]);
-    return 0;
-}
-
 static int eval_jump(inst_t *inst, size_t *i) {
     int j = labels[inst->arg->uid];
     if (j == -1) {
@@ -168,7 +188,7 @@ static int eval_jump_eq(inst_t *inst, size_t *i) {
     }
 
     lit_t *reg = inst->arg->next;
-    int r;
+    int64_t r;
     if (!get_reg(reg, &r))
         return 1;
 
@@ -185,7 +205,7 @@ static int eval_jump_ne(inst_t *inst, size_t *i) {
     }
 
     lit_t *reg = inst->arg->next;
-    int r;
+    int64_t r;
     if (!get_reg(reg, &r))
         return 1;
 
@@ -202,7 +222,7 @@ static int eval_jump_lt(inst_t *inst, size_t *i) {
     }
 
     lit_t *reg = inst->arg->next;
-    int r;
+    int64_t r;
     if (!get_reg(reg, &r))
         return 1;
 
@@ -219,7 +239,7 @@ static int eval_jump_gt(inst_t *inst, size_t *i) {
     }
 
     lit_t *reg = inst->arg->next;
-    int r;
+    int64_t r;
     if (!get_reg(reg, &r))
         return 1;
 
@@ -236,7 +256,7 @@ static int eval_jump_le(inst_t *inst, size_t *i) {
     }
 
     lit_t *reg = inst->arg->next;
-    int r;
+    int64_t r;
     if (!get_reg(reg, &r))
         return 1;
 
@@ -253,7 +273,7 @@ static int eval_jump_ge(inst_t *inst, size_t *i) {
     }
 
     lit_t *reg = inst->arg->next;
-    int r;
+    int64_t r;
     if (!get_reg(reg, &r))
         return 1;
 
@@ -270,7 +290,7 @@ static int eval_label(inst_t *inst, size_t *i) {
 static int eval_add(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int r;
+    int64_t r;
     if (!get_reg(inst->arg, &r))
         return 1;
 
@@ -281,7 +301,7 @@ static int eval_add(inst_t *inst, size_t *i) {
 static int eval_sub(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int r;
+    int64_t r;
     if (!get_reg(inst->arg, &r))
         return 1;
 
@@ -292,7 +312,7 @@ static int eval_sub(inst_t *inst, size_t *i) {
 static int eval_mul(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int r;
+    int64_t r;
     if (!get_reg(inst->arg, &r))
         return 1;
 
@@ -303,7 +323,7 @@ static int eval_mul(inst_t *inst, size_t *i) {
 static int eval_div(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int r;
+    int64_t r;
     if (!get_reg(inst->arg, &r))
         return 1;
 
@@ -319,7 +339,7 @@ static int eval_div(inst_t *inst, size_t *i) {
 static int eval_mod(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int r;
+    int64_t r;
     if (!get_reg(inst->arg, &r))
         return 1;
 
@@ -335,7 +355,7 @@ static int eval_mod(inst_t *inst, size_t *i) {
 static int eval_and(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int r;
+    int64_t r;
     if (!get_reg(inst->arg, &r))
         return 1;
 
@@ -346,7 +366,7 @@ static int eval_and(inst_t *inst, size_t *i) {
 static int eval_or(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int r;
+    int64_t r;
     if (!get_reg(inst->arg, &r))
         return 1;
 
@@ -357,7 +377,7 @@ static int eval_or(inst_t *inst, size_t *i) {
 static int eval_xor(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int r;
+    int64_t r;
     if (!get_reg(inst->arg, &r))
         return 1;
 
@@ -368,7 +388,7 @@ static int eval_xor(inst_t *inst, size_t *i) {
 static int eval_not(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int r;
+    int64_t r;
     if (!get_reg(inst->arg, &r))
         return 1;
 
@@ -379,7 +399,7 @@ static int eval_not(inst_t *inst, size_t *i) {
 static int eval_memw8(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int off;
+    int64_t off;
     if (!get_val(inst->arg, &off))
         return 1;
 
@@ -388,7 +408,7 @@ static int eval_memw8(inst_t *inst, size_t *i) {
 
     lit_t *reg = inst->arg->next;
 
-    int r;
+    int64_t r;
     if (!get_reg(reg, &r))
         return 1;
 
@@ -399,7 +419,7 @@ static int eval_memw8(inst_t *inst, size_t *i) {
 static int eval_memr8(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int off;
+    int64_t off;
     if (!get_val(inst->arg, &off))
         return 1;
 
@@ -413,7 +433,7 @@ static int eval_memr8(inst_t *inst, size_t *i) {
 static int eval_memw16(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int off;
+    int64_t off;
     if (!get_val(inst->arg, &off))
         return 1;
 
@@ -422,7 +442,7 @@ static int eval_memw16(inst_t *inst, size_t *i) {
 
     lit_t *reg = inst->arg->next;
 
-    int r;
+    int64_t r;
     if (!get_reg(reg, &r))
         return 1;
 
@@ -434,7 +454,7 @@ static int eval_memw16(inst_t *inst, size_t *i) {
 static int eval_memr16(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int off;
+    int64_t off;
     if (!get_val(inst->arg, &off))
         return 1;
 
@@ -450,7 +470,7 @@ static int eval_memr16(inst_t *inst, size_t *i) {
 static int eval_memw32(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int off;
+    int64_t off;
     if (!get_val(inst->arg, &off))
         return 1;
 
@@ -459,7 +479,7 @@ static int eval_memw32(inst_t *inst, size_t *i) {
 
     lit_t *reg = inst->arg->next;
 
-    int r;
+    int64_t r;
     if (!get_reg(reg, &r))
         return 1;
 
@@ -471,7 +491,7 @@ static int eval_memw32(inst_t *inst, size_t *i) {
 static int eval_memr32(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int off;
+    int64_t off;
     if (!get_val(inst->arg, &off))
         return 1;
 
@@ -484,10 +504,47 @@ static int eval_memr32(inst_t *inst, size_t *i) {
     return 0;
 }
 
+static int eval_memw64(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
+    int64_t off;
+    if (!get_val(inst->arg, &off))
+        return 1;
+
+    if (!off_valid(off, inst->arg, sizeof(uint64_t)))
+        return 1;
+
+    lit_t *reg = inst->arg->next;
+
+    int64_t r;
+    if (!get_reg(reg, &r))
+        return 1;
+
+    uint64_t v = (uint64_t)vm.r[r];
+    memcpy(vm.mem + off, &v, sizeof(v));
+    return 0;
+}
+
+static int eval_memr64(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
+    int64_t off;
+    if (!get_val(inst->arg, &off))
+        return 1;
+
+    if (!off_valid(off, inst->arg, sizeof(uint64_t)))
+        return 1;
+
+    uint64_t v;
+    memcpy(&v, vm.mem + off, sizeof(v));
+    vm.r[vm.a] = v;
+    return 0;
+}
+
 static int eval_memws(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int off;
+    int64_t off;
     if (!get_val(inst->arg, &off))
         return 1;
 
@@ -499,6 +556,26 @@ static int eval_memws(inst_t *inst, size_t *i) {
 
     for (size_t i = 0; i < size; i++)
         vm.mem[off + i] = str->char_type[i];
+    return 0;
+}
+
+static int eval_memws2(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
+    int64_t off;
+    if (!get_val(inst->arg, &off))
+        return 1;
+
+    lit_t *addr = inst->arg->next; 
+    int64_t p;
+    if (!get_val(addr, &p))
+        return 1;
+
+    for (size_t i = 0; vm.mem[p + i] && p + i < VM_MEM; i++) {
+        if (!off_valid(off + i, inst->arg, i))
+            return 1;
+        vm.mem[off + i] = vm.mem[p + i];
+    }
     return 0;
 }
 
@@ -526,12 +603,12 @@ static int eval_time(inst_t *inst, size_t *i) {
 static int eval_shift_l(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int src;
+    int64_t src;
     if (!get_reg(inst->arg, &src))
         return 1;
 
     lit_t *next = inst->arg->next;
-    int dst;
+    int64_t dst;
     if (!get_reg(next, &dst))
         return 1;
 
@@ -577,12 +654,12 @@ static int eval_return(inst_t *inst, size_t *i) {
 static int eval_shift_r(inst_t *inst, size_t *i) {
     UNUSED(i);
 
-    int src;
+    int64_t src;
     if (!get_reg(inst->arg, &src))
         return 1;
 
     lit_t *next = inst->arg->next;
-    int dst;
+    int64_t dst;
     if (!get_reg(next, &dst))
         return 1;
 
@@ -590,34 +667,212 @@ static int eval_shift_r(inst_t *inst, size_t *i) {
     return 0;
 }
 
-static int index_labels() {
-    size_t max_id = 0;
-    for (size_t i = 0; i < g_insts->count; i++) {
-        inst_t *inst = g_insts->array[i];
+static int eval_iow8(inst_t *inst, size_t *i) {
+    UNUSED(i);
 
-        if (inst->type == IN_LABEL && inst->arg->uid > max_id)
-            max_id = inst->arg->uid;
-    }
+    int64_t addr;
+    if (!get_val(inst->arg, &addr))
+        return 1;
 
-    labels = malloc(sizeof(*labels) * (max_id + 1));
-    for (size_t i = 0; i <= max_id; i++)
-        labels[i] = -1;
+    int64_t src;
+    if (!get_reg(inst->arg->next, &src))
+        return 1;
 
-    for (size_t i = 0; i < g_insts->count; i++) {
-        inst_t *inst = g_insts->array[i];
-
-        if (inst->type == IN_LABEL) {
-            if (labels[inst->arg->uid] == -1)
-                labels[inst->arg->uid] = i;
-            else {
-                fprintf(stderr, "Error: Duplicate label = %s (l: %d, p: %d)\n", inst->arg->repr, inst->arg->lineno, inst->arg->pos);
-                return 0;
-            }
-        }
-    }
-
-    return 1;
+    FILE *io = (FILE*)addr;
+    uint8_t val = (uint8_t)vm.r[src];
+    fwrite(&val, sizeof(uint8_t), 1, io);
+    return 0;
 }
+
+static int eval_ior8(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
+    int64_t addr;
+    if (!get_val(inst->arg, &addr))
+        return 1;
+
+    FILE *io = (FILE*)addr;
+    uint8_t val;
+    fread(&val, sizeof(uint8_t), 1, io);
+    vm.r[vm.a] = (int64_t)val;
+    return 0;
+}
+
+static int eval_iow16(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
+    int64_t addr;
+    if (!get_val(inst->arg, &addr))
+        return 1;
+
+    int64_t src;
+    if (!get_reg(inst->arg->next, &src))
+        return 1;
+
+    FILE *io = (FILE*)addr;
+    uint8_t val = (uint16_t)vm.r[src];
+    fwrite(&val, sizeof(uint16_t), 1, io);
+    return 0;
+}
+
+static int eval_ior16(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
+    int64_t addr;
+    if (!get_val(inst->arg, &addr))
+        return 1;
+
+    FILE *io = (FILE*)addr;
+    uint16_t val;
+    fread(&val, sizeof(uint16_t), 1, io);
+    vm.r[vm.a] = (int64_t)val;
+    return 0;
+}
+
+static int eval_iow32(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
+    int64_t addr;
+    if (!get_val(inst->arg, &addr))
+        return 1;
+
+    int64_t src;
+    if (!get_reg(inst->arg->next, &src))
+        return 1;
+
+    FILE *io = (FILE*)addr;
+    uint32_t val = (uint32_t)vm.r[src];
+    fwrite(&val, sizeof(uint32_t), 1, io);
+    return 0;
+}
+
+static int eval_ior32(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
+    int64_t addr;
+    if (!get_val(inst->arg, &addr))
+        return 1;
+
+    FILE *io = (FILE*)addr;
+    uint32_t val;
+    fread(&val, sizeof(uint32_t), 1, io);
+    vm.r[vm.a] = (int64_t)val;
+    return 0;
+}
+
+static int eval_iow64(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
+    int64_t addr;
+    if (!get_val(inst->arg, &addr))
+        return 1;
+
+    int64_t src;
+    if (!get_reg(inst->arg->next, &src))
+        return 1;
+
+    FILE *io = (FILE*)addr;
+    uint64_t val = (uint64_t)vm.r[src];
+    fwrite(&val, sizeof(uint64_t), 1, io);
+    return 0;
+}
+
+static int eval_ior64(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
+    int64_t addr;
+    if (!get_val(inst->arg, &addr))
+        return 1;
+
+    FILE *io = (FILE*)addr;
+    uint64_t val;
+    fread(&val, sizeof(uint64_t), 1, io);
+    vm.r[vm.a] = (int64_t)val;
+    return 0;
+}
+
+static int eval_iows(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
+    int64_t addr;
+    if (!get_val(inst->arg, &addr))
+        return 1;
+
+    lit_t *str = inst->arg->next;
+
+    FILE *io = (FILE*)addr;
+    fwrite(str->char_type, sizeof(char), strlen(str->char_type), io);
+    return 0;
+}
+
+static int eval_iows2(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
+    int64_t addr;
+    if (!get_val(inst->arg, &addr))
+        return 1;
+
+    lit_t *addr2 = inst->arg->next;
+    FILE *io = (FILE*)addr;
+
+    int64_t p;
+    if (!get_val(addr2, &p))
+        return 1;
+
+    for (size_t i = 0; vm.mem[p + i] && p + i < VM_MEM; i++)
+        fwrite(&vm.mem[p + i], sizeof(uint8_t), 1, io);
+    return 0;
+}
+
+static int eval_memwsn(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
+    int64_t off;
+    if (!get_val(inst->arg, &off))
+        return 1;
+
+    int64_t r;
+    if (!get_reg(inst->arg->next, &r))
+        return 1;
+
+    int64_t val = vm.r[r];
+    int size = snprintf(NULL, 0, "%ld", val);
+    char *str = malloc(size + 1);
+    sprintf(str, "%ld", val);
+
+    for (int i = 0; i < size + 1; i++) {
+        if (!off_valid(off + i, inst->arg, i))
+            return 1;
+        vm.mem[off + i] = str[i];
+    }
+    return 0;
+}
+
+static int eval_memwsh(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
+    int64_t off;
+    if (!get_val(inst->arg, &off))
+        return 1;
+
+    int64_t r;
+    if (!get_reg(inst->arg->next, &r))
+        return 1;
+
+    int64_t val = vm.r[r];
+    int size = 8;
+    char *str = malloc(size + 1);
+    sprintf(str, "%08x", (unsigned)val);
+
+    for (int i = 0; i < size + 1; i++) {
+        if (!off_valid(off + i, inst->arg, i))
+            return 1;
+        vm.mem[off + i] = str[i];
+    }
+    return 0;
+}
+
+/* -- eval instructions end */
 
 int exec(insts_t *insts) {
     g_insts = insts;
@@ -656,8 +911,6 @@ int exec(insts_t *insts) {
             case IN_RETURN: err = eval_return(inst, &i); break;
             case IN_DUMP: err = eval_dump(inst, &i); break;
             case IN_MEMDUMP: err = eval_memdump(inst, &i); break;
-            case IN_PRINTCHAR: err = eval_printchar(inst, &i); break;
-            case IN_PRINTNUM: err = eval_printnum(inst, &i); break;
             case IN_LABEL: err = eval_label(inst, &i); break;
             case IN_MEMW8: err = eval_memw8(inst, &i); break;
             case IN_MEMR8: err = eval_memr8(inst, &i); break;
@@ -665,10 +918,25 @@ int exec(insts_t *insts) {
             case IN_MEMR16: err = eval_memr16(inst, &i); break;
             case IN_MEMW32: err = eval_memw32(inst, &i); break;
             case IN_MEMR32: err = eval_memr32(inst, &i); break;
+            case IN_MEMW64: err = eval_memw64(inst, &i); break;
+            case IN_MEMR64: err = eval_memr64(inst, &i); break;
             case IN_MEMWS: err = eval_memws(inst, &i); break;
+            case IN_MEMWS2: err = eval_memws2(inst, &i); break;
             case IN_INC: err = eval_inc(inst, &i); break;
             case IN_DEC: err = eval_dec(inst, &i); break;
             case IN_TIME: err = eval_time(inst, &i); break;
+            case IN_IOW8: err = eval_iow8(inst, &i); break;
+            case IN_IOR8: err = eval_ior8(inst, &i); break;
+            case IN_IOW16: err = eval_iow16(inst, &i); break;
+            case IN_IOR16: err = eval_ior16(inst, &i); break;
+            case IN_IOW32: err = eval_iow32(inst, &i); break;
+            case IN_IOR32: err = eval_ior32(inst, &i); break;
+            case IN_IOW64: err = eval_iow64(inst, &i); break;
+            case IN_IOR64: err = eval_ior64(inst, &i); break;
+            case IN_IOWS: err = eval_iows(inst, &i); break;
+            case IN_IOWS2: err = eval_iows2(inst, &i); break;
+            case IN_MEMWSN: err = eval_memwsn(inst, &i); break;
+            case IN_MEMWSH: err = eval_memwsh(inst, &i); break;
             default:
                 err = 1;
                 fprintf(stderr, "Error: Unhandled instruction = %d (l: %d, p: %d)\n", inst->type, inst->lineno, inst->pos);

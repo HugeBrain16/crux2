@@ -38,12 +38,25 @@ typedef enum {
     IN_MEMR16,
     IN_MEMW32,
     IN_MEMR32,
+    IN_MEMW64,
+    IN_MEMR64,
     IN_MEMWS,
+    IN_MEMWS2,
+    IN_MEMWSN,
+    IN_MEMWSH,
     IN_DUMP,
     IN_MEMDUMP,
     IN_TIME,
-    IN_PRINTCHAR,
-    IN_PRINTNUM,
+    IN_IOW8,
+    IN_IOR8,
+    IN_IOW16,
+    IN_IOR16,
+    IN_IOW32,
+    IN_IOR32,
+    IN_IOW64,
+    IN_IOR64,
+    IN_IOWS,
+    IN_IOWS2,
 } inst_e;
 
 typedef enum {
@@ -62,7 +75,7 @@ typedef struct lit {
     struct lit *next;
     union {
         uint32_t uid;
-        int int_type;
+        int64_t int_type;
         char *char_type;
     };
     char *repr;

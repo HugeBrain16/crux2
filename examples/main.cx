@@ -1,13 +1,10 @@
-select 2;
-load_i 256;
+select 2; load_i 256; # max
+select 1; load_i 2; # multiplier
+select 0; load_i 1; # num
 
-select 1;
-load_i 2;
-
-select 0;
-load_i 1;
 label loop;
-mul 1;
-jump_le loop 2;
+    mul 1;
+    jump_le loop 2;
 
-dump;
+memwsn 0x0 0;
+iows2 $stdout 0x0;

@@ -335,15 +335,28 @@ static parser_t parsers[] = {
     {"memr16", IN_MEMR16, parse_num_arg},
     {"memw32", IN_MEMW32, parse_num_arg2},
     {"memr32", IN_MEMR32, parse_num_arg},
+    {"memw64", IN_MEMW64, parse_num_arg2},
+    {"memr64", IN_MEMR64, parse_num_arg},
     {"memws", IN_MEMWS, parse_str_arg},
+    {"memws2", IN_MEMWS2, parse_num_arg2},
+    {"memwsn", IN_MEMWSN, parse_num_arg2},
+    {"memwsh", IN_MEMWSH, parse_num_arg2},
 
     {"dump", IN_DUMP, parse_no_arg},
     {"memdump", IN_MEMDUMP, parse_no_arg},
 
     {"time", IN_TIME, parse_no_arg},
 
-    {"printchar", IN_PRINTCHAR, parse_no_arg},
-    {"printnum", IN_PRINTNUM, parse_no_arg},
+    {"iow8",  IN_IOW8,  parse_num_arg2},
+    {"ior8",  IN_IOR8,  parse_num_arg},
+    {"iow16", IN_IOW16, parse_num_arg2},
+    {"ior16", IN_IOR16, parse_num_arg},
+    {"iow32", IN_IOW32, parse_num_arg2},
+    {"ior32", IN_IOR32, parse_num_arg},
+    {"iow64", IN_IOW64, parse_num_arg2},
+    {"ior64", IN_IOR64, parse_num_arg},
+    {"iows", IN_IOWS, parse_str_arg},
+    {"iows2", IN_IOWS2, parse_num_arg2},
 };
 
 insts_t *parse(token_t *tokens) {

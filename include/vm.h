@@ -11,7 +11,7 @@
 typedef struct {
 	int a;
 	uint32_t f;
-	int r[VM_REG];
+	int64_t r[VM_REG];
 	uint8_t mem[VM_MEM];
 } vm_t;
 

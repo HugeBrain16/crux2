@@ -1,13 +1,7 @@
-# base
-select 0;
-load_i 1;
+select 0; load_i 1; # base
+select 1; load_i 8; # value to shift by
 
-# shift
-select 1;
-load_i 4; # value to shift by
+select 0; shift_l 1 2; # r2 = r0 << r1
 
-shift_l 1 2;
-
-# print result
-select 2;
-printnum;
+memwsn 0x0 2;
+iows2 $stdout 0x0;

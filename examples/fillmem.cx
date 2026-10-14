@@ -1,19 +1,10 @@
-# pointer
-select 0;
-load_i 0;
-
-# val
-select 1;
-load_i 255;
-
-# max
-select 2;
-load_i $mem_size;
+select 0; load_i 0; # pointer
+select 1; load_i 255; # val
+select 2; load_i $mem_size; # max
 
 label next;
-memw8 %0 1;
-select 0; inc;
-
-jump_ne next 2;
+    memw8 %0 1;
+    select 0; inc;
+    jump_ne next 2;
 
 memdump;
