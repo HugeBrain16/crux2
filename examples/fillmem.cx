@@ -8,7 +8,7 @@ load_i 255;
 
 # max
 select 2;
-load_i $mem_end;
+load_i $mem_size;
 
 label next;
 memw8 %0 1;

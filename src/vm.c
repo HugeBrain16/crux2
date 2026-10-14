@@ -33,9 +33,7 @@ static int get_val(lit_t *arg, int *val) {
 
         // resolve internal reference
         char *id = arg->char_type;
-        if      (!strcmp(id, "mem_end")) *val = (int)(vm.mem.end - vm.mem.field);
-        else if (!strcmp(id, "mem_current")) *val = (int)(vm.mem.current - vm.mem.field);
-        else if (!strcmp(id, "mem_start")) *val = (int)(vm.mem.start - vm.mem.field);
+        if      (!strcmp(id, "mem_size")) *val = VM_MEM;
         else if (!strcmp(id, "reg_count")) *val = reg_count();
         else if (!strcmp(id, "cx_ver")) *val = CRUX_VERSION;
 
@@ -58,7 +56,7 @@ static int get_reg(lit_t *arg, int *val) {
 }
 
 static int off_valid(int off, lit_t *arg, size_t size) {
-    if (off < 0 || off + size > (size_t)(vm.mem.end - vm.mem.field)) {
+    if (off < 0 || off + size > VM_MEM) {
         printf("Error: Offset is out of memory range (l: %d, p: %d)\n", arg->lineno, arg->pos);
         return 0;
     }
@@ -66,36 +64,8 @@ static int off_valid(int off, lit_t *arg, size_t size) {
     return 1;
 }
 
-static size_t block_size(size_t size) {
-    return size + sizeof(block_t);
-}
-
-static uint8_t *vm_alloc(size_t size) {
-    if (size == 0) return NULL;
-    size = (size + 15) & ~15;
-
-    mem_t mem = vm.mem;
-
-    if (mem.current + block_size(size) > mem.end)
-        return NULL;
-
-    block_t *block = (block_t*)mem.current;
-    block->size = size;
-    block->flags = 0;
-    block->next = NULL;
-    mem.current += block_size(size);
-
-    vm.mem = mem;
-
-    return (uint8_t*)block + sizeof(block_t);
-}
-
 static void vm_init() {
     vm = (vm_t){0};
-
-    vm.mem.start = vm.mem.field;
-    vm.mem.current = vm.mem.field;
-    vm.mem.end = vm.mem.start + VM_MEM;
 }
 
 static int eval_select(inst_t *inst, size_t *i) {
@@ -136,9 +106,9 @@ static int eval_dump(inst_t *inst, size_t *i) {
 static int eval_memdump(inst_t *inst, size_t *i) {
     /*
     int col = 0;
-    printf("MEM 0x%08x - 0x%08x\n", (unsigned)(vm.mem.start - vm.mem.field), (unsigned)(vm.mem.end - vm.mem.field));
-    for (size_t i = 0; i < sizeof(vm.mem.field); i++) {
-        printf("%02x ", vm.mem.field[i]);
+    printf("MEM 0x%08x - 0x%08x\n", (unsigned)vm.mem, (unsigned)VM_MEM);
+    for (size_t i = 0; i < VM_MEM; i++) {
+        printf("%02x ", vm.mem[i]);
         col++;
 
         if (col == 8) {
@@ -155,7 +125,7 @@ static int eval_memdump(inst_t *inst, size_t *i) {
         printf("Error: Failed to dump memory (l: %d, p: %d)\n", inst->lineno, inst->pos);
         return 1;
     }
-    fwrite(vm.mem.field, 1, sizeof(vm.mem.field), f);
+    fwrite(vm.mem, 1, sizeof(vm.mem), f);
     return 0;
 }
 
@@ -391,7 +361,7 @@ static int eval_memw8(inst_t *inst, size_t *i) {
     if (!get_reg(reg, &r))
         return 1;
 
-    vm.mem.field[off] = (uint8_t)vm.r[r].val;
+    vm.mem[off] = (uint8_t)vm.r[r].val;
     return 0;
 }
 
@@ -403,7 +373,7 @@ static int eval_memr8(inst_t *inst, size_t *i) {
     if (!off_valid(off, inst->arg, sizeof(uint8_t)))
         return 1;
 
-    vm.r[vm.a].val = vm.mem.field[off];
+    vm.r[vm.a].val = vm.mem[off];
     return 0;
 }
 
@@ -422,7 +392,7 @@ static int eval_memw16(inst_t *inst, size_t *i) {
         return 1;
 
     uint16_t v = (uint16_t)vm.r[r].val;
-    memcpy(vm.mem.field + off, &v, sizeof(v));
+    memcpy(vm.mem + off, &v, sizeof(v));
     return 0;
 }
 
@@ -435,7 +405,7 @@ static int eval_memr16(inst_t *inst, size_t *i) {
         return 1;
 
     uint16_t v;
-    memcpy(&v, vm.mem.field + off, sizeof(v));
+    memcpy(&v, vm.mem + off, sizeof(v));
     vm.r[vm.a].val = v;
     return 0;
 }
@@ -455,7 +425,7 @@ static int eval_memw32(inst_t *inst, size_t *i) {
         return 1;
 
     uint32_t v = (uint32_t)vm.r[r].val;
-    memcpy(vm.mem.field + off, &v, sizeof(v));
+    memcpy(vm.mem + off, &v, sizeof(v));
     return 0;
 }
 
@@ -468,7 +438,7 @@ static int eval_memr32(inst_t *inst, size_t *i) {
         return 1;
 
     uint32_t v;
-    memcpy(&v, vm.mem.field + off, sizeof(v));
+    memcpy(&v, vm.mem + off, sizeof(v));
     vm.r[vm.a].val = v;
     return 0;
 }
@@ -485,7 +455,7 @@ static int eval_memws(inst_t *inst, size_t *i) {
         return 1;
 
     for (size_t i = 0; i < size; i++)
-        vm.mem.field[off + i] = str->char_type[i];
+        vm.mem[off + i] = str->char_type[i];
     return 0;
 }
 
@@ -523,7 +493,7 @@ static int eval_call(inst_t *inst, size_t *i) {
     size_t ret = *i + 1;
 
     sp -= sizeof(size_t);
-    memcpy(vm.mem.field + sp, &ret, sizeof(size_t));
+    memcpy(vm.mem + sp, &ret, sizeof(size_t));
     vm.r[vm.a].val = sp;
 
     return eval_jump(inst, i);
@@ -533,7 +503,7 @@ static int eval_return(inst_t *inst, size_t *i) {
     int sp = vm.r[vm.a].val;
     size_t ret;
 
-    memcpy(&ret, vm.mem.field + sp, sizeof(size_t));
+    memcpy(&ret, vm.mem + sp, sizeof(size_t));
     sp += sizeof(size_t);
     vm.r[vm.a].val = sp;
 

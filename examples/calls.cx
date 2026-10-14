@@ -4,7 +4,7 @@ select 31; load_i 0xa000; # set stack pointer
 # check version, version 1 doesn't have call & return yet
 select 1; load_i $cx_ver;
 select 2; load_i 2;
-jump_eq end 1;
+jump_ne end 1;
 
 jump main;
 

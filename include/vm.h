@@ -13,26 +13,11 @@ typedef struct {
 	int val;
 } reg_t;
 
-#define BLOCK_FREE (1 << 0)
-
-typedef struct block {
-	size_t size;
-	uint8_t flags;
-	struct block *next;
-} block_t;
-
-typedef struct {
-	uint8_t *start;
-	uint8_t *current;
-	uint8_t *end;
-	uint8_t field[VM_MEM];
-} mem_t;
-
 typedef struct {
 	int a;
 	uint32_t f;
 	reg_t r[VM_REG];
-	mem_t mem;
+	uint8_t mem[VM_MEM];
 } vm_t;
 
 extern int exec(insts_t *insts);
