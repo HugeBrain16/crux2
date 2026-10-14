@@ -281,7 +281,7 @@ token_t *tokenize(const char *src, size_t len) {
 		else if (c == '$')
 			tok = lex_int(src + i, &i);
 		else {
-			fprintf(stderr, "Error: Invalid syntax (l: %d, p: %d)\n", lineno, (int)i);
+			fprintf(stderr, "Error: Invalid syntax = '%c' (l: %d, p: %d)\n", c, lineno, (int)i);
 			break;
 		}
 

@@ -370,7 +370,7 @@ insts_t *parse(token_t *tokens) {
             }
 
             if (!parsed) {
-                fprintf(stderr, "Error: Unknown instruction (l: %d, p: %d)\n", curr->lineno, curr->pos);
+                fprintf(stderr, "Error: Unknown instruction = %s (l: %d, p: %d)\n", start->value, start->lineno, start->pos);
                 break;
             }
 
