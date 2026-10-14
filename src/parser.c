@@ -1,4 +1,5 @@
 #include <vm.h>
+#include <defs.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,7 +66,7 @@ static void ids_push(id2_t *id) {
 
 static token_t *parse_op(token_t *prev, token_t *arg) {
     if (!arg) {
-        printf("Error: Value expected (l: %d, p: %d)\n", prev->lineno, prev->pos);
+        fprintf(stderr, "Error: Value expected (l: %d, p: %d)\n", prev->lineno, prev->pos);
         return NULL;
     }
  
@@ -73,12 +74,12 @@ static token_t *parse_op(token_t *prev, token_t *arg) {
         token_t *num = arg->next;
  
         if (!num) {
-            printf("Error: Reference not followed by register number (l: %d, p: %d)\n", arg->lineno, arg->pos);
+            fprintf(stderr, "Error: Reference not followed by register number (l: %d, p: %d)\n", arg->lineno, arg->pos);
             return NULL;
         }
  
         if (num->type != TOKEN_NUM || num->pos - arg->pos != 1) {
-            printf("Error: Reference not followed by register number (l: %d, p: %d)\n", num->lineno, num->pos);
+            fprintf(stderr, "Error: Reference not followed by register number (l: %d, p: %d)\n", num->lineno, num->pos);
             return NULL;
         }
  
@@ -87,12 +88,12 @@ static token_t *parse_op(token_t *prev, token_t *arg) {
         token_t *id = arg->next;
 
         if (!id) {
-            printf("Error: Internal reference not followed by identifier (l: %d, p: %d)\n", arg->lineno, arg->pos);
+            fprintf(stderr, "Error: Internal reference not followed by identifier (l: %d, p: %d)\n", arg->lineno, arg->pos);
             return NULL;
         }
 
         if (id->type != TOKEN_ID || id->pos - arg->pos != 1) {
-            printf("Error: Internal reference not followed by identifier (l: %d, p: %d)\n", arg->lineno, arg->pos);
+            fprintf(stderr, "Error: Internal reference not followed by identifier (l: %d, p: %d)\n", arg->lineno, arg->pos);
             return NULL;
         }
 
@@ -100,7 +101,7 @@ static token_t *parse_op(token_t *prev, token_t *arg) {
     }
  
     if (arg->type != TOKEN_NUM) {
-        printf("Error: Value expected (l: %d, p: %d)\n", arg->lineno, arg->pos);
+        fprintf(stderr, "Error: Value expected (l: %d, p: %d)\n", arg->lineno, arg->pos);
         return NULL;
     }
  
@@ -113,12 +114,12 @@ static token_t *parse_num_arg(token_t *inst, token_t *arg) {
  
 static token_t *parse_id_arg(token_t *inst, token_t *arg) {
     if (!arg) {
-        printf("Error: Value expected (l: %d, p: %d)\n", inst->lineno, inst->pos);
+        fprintf(stderr, "Error: Value expected (l: %d, p: %d)\n", inst->lineno, inst->pos);
         return NULL;
     }
  
     if (arg->type != TOKEN_ID) {
-        printf("Error: Value expected (l: %d, p: %d)\n", arg->lineno, arg->pos);
+        fprintf(stderr, "Error: Value expected (l: %d, p: %d)\n", arg->lineno, arg->pos);
         return NULL;
     }
  
@@ -129,12 +130,12 @@ static token_t *parse_jump_cond(token_t *inst, token_t *arg) {
     /* jump to defined label if condition met */
  
     if (!arg) {
-        printf("Error: Value expected (l: %d, p: %d)\n", inst->lineno, inst->pos);
+        fprintf(stderr, "Error: Value expected (l: %d, p: %d)\n", inst->lineno, inst->pos);
         return NULL;
     }
  
     if (arg->type != TOKEN_ID) {
-        printf("Error: Value expected (l: %d, p: %d)\n", arg->lineno, arg->pos);
+        fprintf(stderr, "Error: Value expected (l: %d, p: %d)\n", arg->lineno, arg->pos);
         return NULL;
     }
 
@@ -156,7 +157,7 @@ static token_t *parse_str_arg(token_t *inst, token_t *arg) {
     }
  
     if (next->type != TOKEN_STR) {
-        printf("Error: Value expected (l: %d, p: %d)\n", next->lineno, next->pos);
+        fprintf(stderr, "Error: Value expected (l: %d, p: %d)\n", next->lineno, next->pos);
         return NULL;
     }
  
@@ -164,6 +165,7 @@ static token_t *parse_str_arg(token_t *inst, token_t *arg) {
 }
  
 static token_t *parse_no_arg(token_t *inst, token_t *arg) {
+    UNUSED(inst);
     return arg;
 }
 
@@ -213,6 +215,7 @@ static lit_t *parse_args(token_t *arg) {
             case TOKEN_ID:
                 lit->type = L_ID;
                 lit->uid = get_index(curr->value);
+                lit->char_type = curr->value;
                 break;
             case TOKEN_STR:
                 lit->type = L_STR;
@@ -341,7 +344,7 @@ insts_t *parse(token_t *tokens) {
             }
 
             if (!parsed) {
-                printf("Error: Unknown instruction (l: %d, p: %d)\n", curr->lineno, curr->pos);
+                fprintf(stderr, "Error: Unknown instruction (l: %d, p: %d)\n", curr->lineno, curr->pos);
                 break;
             }
 
@@ -350,7 +353,7 @@ insts_t *parse(token_t *tokens) {
                 break;
 
             if (!end || end->type != TOKEN_END) {
-                printf("Error: Missing semicolon (l: %d, p: %d)\n", start->lineno, start->pos);
+                fprintf(stderr, "Error: Missing semicolon (l: %d, p: %d)\n", start->lineno, start->pos);
                 break;
             }
 
@@ -363,18 +366,18 @@ insts_t *parse(token_t *tokens) {
 
             curr = end->next;
         } else {
-            printf("Error: Must start with instruction (l: %d, p: %d)\n", curr->lineno, curr->pos);
+            fprintf(stderr, "Error: Must start with instruction (l: %d, p: %d)\n", curr->lineno, curr->pos);
             break;
         }
     }
 
-    /*
-    for (size_t i = 0; i < ids->count; i++) {
-        id2_t *id = ids->array[i];
+    #ifdef CRUX_DEBUG
+        for (size_t i = 0; i < ids->count; i++) {
+            id2_t *id = ids->array[i];
 
-        printf("id=%d name=%s\n", id->id, id->name);
-    }
-    */
+            printf("Debug[parser-index]: id=%d name=%s\n", id->id, id->name);
+        }
+    #endif
 
     insts->ids = ids;
     return insts;

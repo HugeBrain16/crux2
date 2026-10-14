@@ -16,7 +16,7 @@ static int reg_count() {
 
 static int reg_valid(int r, lit_t *arg) {
     if (r < 0 || r >= reg_count()) {
-        printf("Error: Invalid register (l: %d, p: %d)\n", arg->lineno, arg->pos);
+        fprintf(stderr, "Error: Invalid register = %d (l: %d, p: %d)\n", r, arg->lineno, arg->pos);
         return 0;
     }
 
@@ -38,7 +38,7 @@ static int get_val(lit_t *arg, int *val) {
         else if (!strcmp(id, "cx_ver")) *val = CRUX_VERSION;
 
         else {
-            printf("Error: Unknown internal name = %s (l: %d, p: %d)\n", id, arg->lineno, arg->pos);
+            fprintf(stderr, "Error: Unknown internal name = %s (l: %d, p: %d)\n", id, arg->lineno, arg->pos);
             return 0;
         }
     } else {
@@ -57,18 +57,16 @@ static int get_reg(lit_t *arg, int *val) {
 
 static int off_valid(int off, lit_t *arg, size_t size) {
     if (off < 0 || off + size > VM_MEM) {
-        printf("Error: Offset is out of memory range (l: %d, p: %d)\n", arg->lineno, arg->pos);
+        fprintf(stderr, "Error: Offset %d (0x%08x) is out of memory range (l: %d, p: %d)\n", off, off, arg->lineno, arg->pos);
         return 0;
     }
 
     return 1;
 }
 
-static void vm_init() {
-    vm = (vm_t){0};
-}
-
 static int eval_select(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int r;
     if (!get_reg(inst->arg, &r))
         return 1;
@@ -78,6 +76,8 @@ static int eval_select(inst_t *inst, size_t *i) {
 }
 
 static int eval_load_i(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int v;
     if (!get_val(inst->arg, &v))
         return 1;
@@ -87,6 +87,8 @@ static int eval_load_i(inst_t *inst, size_t *i) {
 }
 
 static int eval_load(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int r;
     if (!get_reg(inst->arg, &r))
         return 1;
@@ -96,6 +98,8 @@ static int eval_load(inst_t *inst, size_t *i) {
 }
 
 static int eval_dump(inst_t *inst, size_t *i) {
+    UNUSED(inst); UNUSED(i);
+
     printf("A: %d\n", vm.a);
     printf("F: %d\n", vm.f);
     for (int i = 0; i < reg_count(); i++)
@@ -104,6 +108,8 @@ static int eval_dump(inst_t *inst, size_t *i) {
 }
 
 static int eval_memdump(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     /*
     int col = 0;
     printf("MEM 0x%08x - 0x%08x\n", (unsigned)vm.mem, (unsigned)VM_MEM);
@@ -122,7 +128,7 @@ static int eval_memdump(inst_t *inst, size_t *i) {
 
     FILE *f = fopen("memory.bin", "wb");
     if (!f) {
-        printf("Error: Failed to dump memory (l: %d, p: %d)\n", inst->lineno, inst->pos);
+        fprintf(stderr, "Error: Failed to dump memory (l: %d, p: %d)\n", inst->lineno, inst->pos);
         return 1;
     }
     fwrite(vm.mem, 1, sizeof(vm.mem), f);
@@ -130,11 +136,15 @@ static int eval_memdump(inst_t *inst, size_t *i) {
 }
 
 static int eval_printchar(inst_t *inst, size_t *i) {
+    UNUSED(inst); UNUSED(i);
+
     printf("%c", (char)vm.r[vm.a]);
     return 0;
 }
 
 static int eval_printnum(inst_t *inst, size_t *i) {
+    UNUSED(inst); UNUSED(i);
+
     printf("%d", vm.r[vm.a]);
     return 0;
 }
@@ -142,7 +152,7 @@ static int eval_printnum(inst_t *inst, size_t *i) {
 static int eval_jump(inst_t *inst, size_t *i) {
     int j = labels[inst->arg->uid];
     if (j == -1) {
-        printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
+        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->char_type, inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
@@ -153,7 +163,7 @@ static int eval_jump(inst_t *inst, size_t *i) {
 static int eval_jump_eq(inst_t *inst, size_t *i) {
     int j = labels[inst->arg->uid];
     if (j == -1) {
-        printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
+        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->char_type, inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
@@ -170,7 +180,7 @@ static int eval_jump_eq(inst_t *inst, size_t *i) {
 static int eval_jump_ne(inst_t *inst, size_t *i) {
     int j = labels[inst->arg->uid];
     if (j == -1) {
-        printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
+        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->char_type, inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
@@ -187,7 +197,7 @@ static int eval_jump_ne(inst_t *inst, size_t *i) {
 static int eval_jump_lt(inst_t *inst, size_t *i) {
     int j = labels[inst->arg->uid];
     if (j == -1) {
-        printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
+        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->char_type, inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
@@ -204,7 +214,7 @@ static int eval_jump_lt(inst_t *inst, size_t *i) {
 static int eval_jump_gt(inst_t *inst, size_t *i) {
     int j = labels[inst->arg->uid];
     if (j == -1) {
-        printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
+        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->char_type, inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
@@ -221,7 +231,7 @@ static int eval_jump_gt(inst_t *inst, size_t *i) {
 static int eval_jump_le(inst_t *inst, size_t *i) {
     int j = labels[inst->arg->uid];
     if (j == -1) {
-        printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
+        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->char_type, inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
@@ -238,7 +248,7 @@ static int eval_jump_le(inst_t *inst, size_t *i) {
 static int eval_jump_ge(inst_t *inst, size_t *i) {
     int j = labels[inst->arg->uid];
     if (j == -1) {
-        printf("Error: Undefined label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
+        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->char_type, inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
@@ -253,10 +263,13 @@ static int eval_jump_ge(inst_t *inst, size_t *i) {
 }
 
 static int eval_label(inst_t *inst, size_t *i) {
+    UNUSED(inst); UNUSED(i);
     return 0;
 }
 
 static int eval_add(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int r;
     if (!get_reg(inst->arg, &r))
         return 1;
@@ -266,6 +279,8 @@ static int eval_add(inst_t *inst, size_t *i) {
 }
 
 static int eval_sub(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int r;
     if (!get_reg(inst->arg, &r))
         return 1;
@@ -275,6 +290,8 @@ static int eval_sub(inst_t *inst, size_t *i) {
 }
 
 static int eval_mul(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int r;
     if (!get_reg(inst->arg, &r))
         return 1;
@@ -284,12 +301,14 @@ static int eval_mul(inst_t *inst, size_t *i) {
 }
 
 static int eval_div(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int r;
     if (!get_reg(inst->arg, &r))
         return 1;
 
     if (vm.r[r] == 0) {
-        printf("Error: Division by zero (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
+        fprintf(stderr, "Error: Division by zero (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
@@ -298,12 +317,14 @@ static int eval_div(inst_t *inst, size_t *i) {
 }
 
 static int eval_mod(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int r;
     if (!get_reg(inst->arg, &r))
         return 1;
 
     if (vm.r[r] == 0) {
-        printf("Error: Division by zero (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
+        fprintf(stderr, "Error: Division by zero (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
@@ -312,6 +333,8 @@ static int eval_mod(inst_t *inst, size_t *i) {
 }
 
 static int eval_and(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int r;
     if (!get_reg(inst->arg, &r))
         return 1;
@@ -321,6 +344,8 @@ static int eval_and(inst_t *inst, size_t *i) {
 }
 
 static int eval_or(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int r;
     if (!get_reg(inst->arg, &r))
         return 1;
@@ -330,6 +355,8 @@ static int eval_or(inst_t *inst, size_t *i) {
 }
 
 static int eval_xor(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int r;
     if (!get_reg(inst->arg, &r))
         return 1;
@@ -339,6 +366,8 @@ static int eval_xor(inst_t *inst, size_t *i) {
 }
 
 static int eval_not(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int r;
     if (!get_reg(inst->arg, &r))
         return 1;
@@ -348,6 +377,8 @@ static int eval_not(inst_t *inst, size_t *i) {
 }
 
 static int eval_memw8(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int off;
     if (!get_val(inst->arg, &off))
         return 1;
@@ -366,6 +397,8 @@ static int eval_memw8(inst_t *inst, size_t *i) {
 }
 
 static int eval_memr8(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int off;
     if (!get_val(inst->arg, &off))
         return 1;
@@ -378,6 +411,8 @@ static int eval_memr8(inst_t *inst, size_t *i) {
 }
 
 static int eval_memw16(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int off;
     if (!get_val(inst->arg, &off))
         return 1;
@@ -397,6 +432,8 @@ static int eval_memw16(inst_t *inst, size_t *i) {
 }
 
 static int eval_memr16(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int off;
     if (!get_val(inst->arg, &off))
         return 1;
@@ -411,6 +448,8 @@ static int eval_memr16(inst_t *inst, size_t *i) {
 }
 
 static int eval_memw32(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int off;
     if (!get_val(inst->arg, &off))
         return 1;
@@ -430,6 +469,8 @@ static int eval_memw32(inst_t *inst, size_t *i) {
 }
 
 static int eval_memr32(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int off;
     if (!get_val(inst->arg, &off))
         return 1;
@@ -444,6 +485,8 @@ static int eval_memr32(inst_t *inst, size_t *i) {
 }
 
 static int eval_memws(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int off;
     if (!get_val(inst->arg, &off))
         return 1;
@@ -460,21 +503,29 @@ static int eval_memws(inst_t *inst, size_t *i) {
 }
 
 static int eval_inc(inst_t *inst, size_t *i) {
+    UNUSED(inst); UNUSED(i);
+
     vm.r[vm.a] += 1;
     return 0;
 }
 
 static int eval_dec(inst_t *inst, size_t *i) {
+    UNUSED(inst); UNUSED(i);
+
     vm.r[vm.a] -= 1;
     return 0;
 }
 
 static int eval_time(inst_t *inst, size_t *i) {
+    UNUSED(inst); UNUSED(i);
+
     vm.r[vm.a] = clock() * 1000 / CLOCKS_PER_SEC;
     return 0;
 }
 
 static int eval_shift_l(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int src;
     if (!get_reg(inst->arg, &src))
         return 1;
@@ -500,6 +551,8 @@ static int eval_call(inst_t *inst, size_t *i) {
 }
 
 static int eval_return(inst_t *inst, size_t *i) {
+    UNUSED(inst);
+
     int sp = vm.r[vm.a];
     size_t ret;
 
@@ -512,6 +565,8 @@ static int eval_return(inst_t *inst, size_t *i) {
 }
 
 static int eval_shift_r(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
     int src;
     if (!get_reg(inst->arg, &src))
         return 1;
@@ -545,7 +600,7 @@ static int index_labels() {
             if (labels[inst->arg->uid] == -1)
                 labels[inst->arg->uid] = i;
             else {
-                printf("Error: Duplicate label (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
+                fprintf(stderr, "Error: Duplicate label = %s (l: %d, p: %d)\n", inst->arg->char_type, inst->arg->lineno, inst->arg->pos);
                 return 0;
             }
         }
@@ -557,7 +612,7 @@ static int index_labels() {
 int exec(insts_t *insts) {
     g_insts = insts;
 
-    vm_init();
+    vm = (vm_t){0};
     if(!index_labels())
         return 1;
 
@@ -606,7 +661,7 @@ int exec(insts_t *insts) {
             case IN_TIME: err = eval_time(inst, &i); break;
             default:
                 err = 1;
-                printf("Error: Unhandled instruction (l: %d, p: %d)\n", inst->lineno, inst->pos);
+                fprintf(stderr, "Error: Unhandled instruction = %d (l: %d, p: %d)\n", inst->type, inst->lineno, inst->pos);
                 break;
         }
 
