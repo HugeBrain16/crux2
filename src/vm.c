@@ -152,7 +152,7 @@ static int eval_printnum(inst_t *inst, size_t *i) {
 static int eval_jump(inst_t *inst, size_t *i) {
     int j = labels[inst->arg->uid];
     if (j == -1) {
-        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->char_type, inst->arg->lineno, inst->arg->pos);
+        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->repr, inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
@@ -163,7 +163,7 @@ static int eval_jump(inst_t *inst, size_t *i) {
 static int eval_jump_eq(inst_t *inst, size_t *i) {
     int j = labels[inst->arg->uid];
     if (j == -1) {
-        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->char_type, inst->arg->lineno, inst->arg->pos);
+        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->repr, inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
@@ -180,7 +180,7 @@ static int eval_jump_eq(inst_t *inst, size_t *i) {
 static int eval_jump_ne(inst_t *inst, size_t *i) {
     int j = labels[inst->arg->uid];
     if (j == -1) {
-        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->char_type, inst->arg->lineno, inst->arg->pos);
+        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->repr, inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
@@ -197,7 +197,7 @@ static int eval_jump_ne(inst_t *inst, size_t *i) {
 static int eval_jump_lt(inst_t *inst, size_t *i) {
     int j = labels[inst->arg->uid];
     if (j == -1) {
-        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->char_type, inst->arg->lineno, inst->arg->pos);
+        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->repr, inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
@@ -214,7 +214,7 @@ static int eval_jump_lt(inst_t *inst, size_t *i) {
 static int eval_jump_gt(inst_t *inst, size_t *i) {
     int j = labels[inst->arg->uid];
     if (j == -1) {
-        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->char_type, inst->arg->lineno, inst->arg->pos);
+        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->repr, inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
@@ -231,7 +231,7 @@ static int eval_jump_gt(inst_t *inst, size_t *i) {
 static int eval_jump_le(inst_t *inst, size_t *i) {
     int j = labels[inst->arg->uid];
     if (j == -1) {
-        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->char_type, inst->arg->lineno, inst->arg->pos);
+        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->repr, inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
@@ -248,7 +248,7 @@ static int eval_jump_le(inst_t *inst, size_t *i) {
 static int eval_jump_ge(inst_t *inst, size_t *i) {
     int j = labels[inst->arg->uid];
     if (j == -1) {
-        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->char_type, inst->arg->lineno, inst->arg->pos);
+        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->repr, inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
@@ -600,7 +600,7 @@ static int index_labels() {
             if (labels[inst->arg->uid] == -1)
                 labels[inst->arg->uid] = i;
             else {
-                fprintf(stderr, "Error: Duplicate label = %s (l: %d, p: %d)\n", inst->arg->char_type, inst->arg->lineno, inst->arg->pos);
+                fprintf(stderr, "Error: Duplicate label = %s (l: %d, p: %d)\n", inst->arg->repr, inst->arg->lineno, inst->arg->pos);
                 return 0;
             }
         }

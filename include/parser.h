@@ -65,6 +65,7 @@ typedef struct lit {
         int int_type;
         char *char_type;
     };
+    char *repr;
 } lit_t;
 
 typedef struct {

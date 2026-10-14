@@ -291,9 +291,8 @@ token_t *tokenize(const char *src, size_t len) {
 			tok->lineno = lineno;
 			tok->pos = start;
 			
-			#ifdef CRUX_DEBUG
+			if (crux_debug)
 				printf("Debug[token]: line=%d pos=%d value=%s\n", tok->lineno, tok->pos, tok->value);
-			#endif
 
 			if (!head) {
 				head = tok;

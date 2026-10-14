@@ -204,41 +204,67 @@ static lit_t *parse_args(token_t *arg) {
         lit->pos = curr->pos;
         switch (curr->type) {
             case TOKEN_NUM:
+            {
+                char *c = curr->value;
+
                 lit->type = L_NUM;
-                if (curr->size > 1 && *curr->value == '0' && *(curr->value + 1) == 'b')
-                    lit->int_type = strtol(curr->value + 2, NULL, 2);
-                else if (curr->size > 1 && *curr->value == '0' && *(curr->value + 1) == 'x')
-                    lit->int_type = strtol(curr->value + 2, NULL, 16);
-                else
+                if (*c == '0' && curr->size > 1) {
+                    c++;
+
+                    switch(*c) {
+                        case 'b':
+                            lit->int_type = strtol(curr->value + 2, NULL, 2);
+                            break;
+                        case 'x':
+                            lit->int_type = strtol(curr->value + 2, NULL, 16);
+                            break;
+                    }
+                } else
                     lit->int_type = strtol(curr->value, NULL, 0);
                 break;
+            }
             case TOKEN_ID:
                 lit->type = L_ID;
                 lit->uid = get_index(curr->value);
-                lit->char_type = curr->value;
+                lit->repr = curr->value;
                 break;
             case TOKEN_STR:
+            {
                 lit->type = L_STR;
 
                 char *str = malloc(curr->size + 1);
                 unescape(str, curr->value, curr->size + 1);
                 lit->char_type = str;
+                lit->repr = curr->value;
                 break;
+            }
             case TOKEN_REF:
+            {
                 lit->type = L_REF;
 
                 curr = curr->next;
                 lit->int_type = strtol(curr->value, NULL, 0);
+
+                char *repr = malloc(curr->size + 1);
+                sprintf(repr, "%%%s", curr->value);
+                lit->repr = repr;
                 break;
+            }
             case TOKEN_INT:
+            {
                 lit->type = L_INT;
 
                 curr = curr->next;
                 lit->char_type = curr->value;
+
+                char *repr = malloc(curr->size + 1);
+                sprintf(repr, "$%s", curr->value);
                 break;
+            }
             default:
                 lit->type = L_GEN;
                 lit->char_type = curr->value;
+                lit->repr = curr->value;
                 break;
         }
 
@@ -371,13 +397,13 @@ insts_t *parse(token_t *tokens) {
         }
     }
 
-    #ifdef CRUX_DEBUG
+    if (crux_debug) {
         for (size_t i = 0; i < ids->count; i++) {
             id2_t *id = ids->array[i];
 
             printf("Debug[parser-index]: id=%d name=%s\n", id->id, id->name);
         }
-    #endif
+    }
 
     insts->ids = ids;
     return insts;
