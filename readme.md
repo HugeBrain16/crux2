@@ -6,7 +6,7 @@ Assembly like interpreter
 
 ## Building
 
-*Requires **GCC**
+*Default compiler is **GCC**. If you wanna use another compiler, edit [build.sh](build.sh)
 
 Edit VM specs in [vm.h](include/vm.h)  
 default specs:  
