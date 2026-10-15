@@ -30,19 +30,17 @@ static int get_val(lit_t *arg, int64_t *val) {
 
         *val = vm.r[arg->int_type];
     } else if (arg->type == L_INT) {
-
         // resolve internal reference
-        char *id = arg->char_type;
-        if      (!strcmp(id, "mem_size")) *val = VM_MEM;
-        else if (!strcmp(id, "reg_count")) *val = reg_count();
-        else if (!strcmp(id, "cx_ver")) *val = CRUX_VERSION;
-        else if (!strcmp(id, "stdout")) *val = (uintptr_t)stdout;
-        else if (!strcmp(id, "stdin")) *val = (uintptr_t)stdin;
-        else if (!strcmp(id, "stderr")) *val = (uintptr_t)stderr;
-
-        else {
-            fprintf(stderr, "Error: Unknown internal name = %s (l: %d, p: %d)\n", id, arg->lineno, arg->pos);
-            return 0;
+        switch (arg->uid) {
+            case INT_MEM_SIZE: *val = VM_MEM; break;
+            case INT_REG_COUNT: *val = reg_count(); break;
+            case INT_CX_VER: *val = CRUX_VERSION; break;
+            case INT_STDOUT: *val = (uintptr_t)stdout; break;
+            case INT_STDIN: *val = (uintptr_t)stdin; break;
+            case INT_STDERR: *val = (uintptr_t)stderr; break;
+            default:
+                fprintf(stderr, "Error: Unknown internal name = %s (l: %d, p: %d)\n", arg->repr + 1, arg->lineno, arg->pos);
+                return 0;
         }
     } else {
         *val = arg->int_type;

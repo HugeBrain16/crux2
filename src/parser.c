@@ -193,6 +193,19 @@ static uint32_t get_index(char *name) {
     return id->id;
 }
 
+typedef struct inter {
+    char *name;
+    int_e type;
+} inter_t;
+static inter_t internals[] = {
+    {"mem_size", INT_MEM_SIZE},
+    {"reg_count", INT_REG_COUNT},
+    {"cx_ver", INT_CX_VER},
+    {"stdout", INT_STDOUT},
+    {"stdin", INT_STDIN},
+    {"stderr", INT_STDERR},
+};
+
 static lit_t *parse_args(token_t *arg) {
     lit_t *head = NULL;
     lit_t *current = NULL;
@@ -257,12 +270,19 @@ static lit_t *parse_args(token_t *arg) {
             case TOKEN_INT:
             {
                 lit->type = L_INT;
+                lit->uid = INT_UNKNOWN;
 
                 curr = curr->next;
-                lit->char_type = curr->value;
+                for (size_t i = 0; i < sizeof(internals) / sizeof(internals[0]); i++) {
+                    if (!strcmp(curr->value, internals[i].name)) {
+                        lit->uid = internals[i].type;
+                        break;
+                    }
+                }
 
-                char *repr = malloc(strlen(curr->value) + 1);
+                char *repr = malloc(strlen(curr->value) + 2);
                 sprintf(repr, "$%s", curr->value);
+                lit->repr = repr;
                 break;
             }
             default:

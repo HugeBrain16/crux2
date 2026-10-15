@@ -68,6 +68,16 @@ typedef enum {
     L_INT,
 } lit_e;
 
+typedef enum {
+    INT_UNKNOWN,
+    INT_MEM_SIZE,
+    INT_REG_COUNT,
+    INT_CX_VER,
+    INT_STDIN,
+    INT_STDOUT,
+    INT_STDERR,
+} int_e;
+
 typedef struct lit {
     lit_e type;
     int lineno;
