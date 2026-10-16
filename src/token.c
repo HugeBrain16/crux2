@@ -46,24 +46,29 @@ static token_t *token_def(token_e type, const char *src, size_t len) {
 	return t;
 }
 
+static void token_append(token_t *token, const char c, size_t *count) {
+	if (*count >= token->size) {
+		token->size = token->size == 0 ? 4 : token->size * 2;
+		token->value = realloc(token->value, token->size);
+	}
+	token->value[(*count)++] = c;
+}
+
+static void token_nullterm(token_t *token, size_t count) {
+	if (count >= token->size)
+		token->value = realloc(token->value, token->size + 1);
+	token->value[count] = '\0';
+}
+
 static token_t *lex_id(const char *src, size_t *pos) {
 	token_t *t = token_new(TOKEN_ID);
 
 	size_t c = 0;
 	while (isalpha2(*src) || *src == '_') {
-		if (c >= t->size) {
-			t->size = t->size == 0 ? 4 : t->size * 2;
-			t->value = realloc(t->value, t->size);
-		}
-		t->value[c++] = *src;
-
-		src++;
-		(*pos)++;
+		token_append(t, *src, &c);
+		src++; (*pos)++;
 	}
-
-	if (c >= t->size)
-		t->value = realloc(t->value, t->size + 1);
-	t->value[c] = '\0';
+	token_nullterm(t, c);
 
 	return t;
 }
@@ -73,11 +78,9 @@ static token_t *lex_num(const char *src, size_t *pos) {
 
 	size_t c = 0;
 	if (*src == '0' && *(src + 1) == 'x') {
-		t->value = realloc(t->value, t->size += 2);
-		t->value[c++] = *src;
-		t->value[c++] = *(src + 1);
-		src += 2;
-		(*pos) += 2;
+		token_append(t, *src, &c);
+		token_append(t, *(src + 1), &c); 
+		src += 2; (*pos) += 2;
 
 		if (!ishex(*src)) {
 			fprintf(stderr, "Error: Invalid hex value (l: %d, p: %d)\n", lineno, (int)(*pos));
@@ -85,23 +88,13 @@ static token_t *lex_num(const char *src, size_t *pos) {
 		}
 
 		while (ishex(*src) || *src == '_') {
-			if (*src != '_') {
-				if (c >= t->size) {
-					t->size *= 2;
-					t->value = realloc(t->value, t->size);
-				}
-				t->value[c++] = *src;
-			}
-
-			src++;
-			(*pos)++;
+			if (*src != '_') token_append(t, *src, &c);
+			src++; (*pos)++;
 		}
 	} else if (*src == '0' && *(src + 1) == 'b') {
-		t->value = realloc(t->value, t->size += 2);
-		t->value[c++] = *src;
-		t->value[c++] = *(src + 1);
-		src += 2;
-		(*pos) += 2;
+		token_append(t, *src, &c);
+		token_append(t, *(src + 1), &c);
+		src += 2; (*pos) += 2;
 
 		if (!isbin(*src)) {
 			fprintf(stderr, "Error: Invalid binary value (l: %d, p: %d)\n", lineno, (int)(*pos));
@@ -109,43 +102,22 @@ static token_t *lex_num(const char *src, size_t *pos) {
 		}
 
 		while (isbin(*src) || *src == '_') {
-			if (*src != '_') {
-				if (c >= t->size) {
-					t->size *= 2;
-					t->value = realloc(t->value, t->size);
-				}
-				t->value[c++] = *src;
-			}
-
-			src++;
-			(*pos)++;
+			if (*src != '_') token_append(t, *src, &c);
+			src++; (*pos)++;
 		}
 	} else {
 		// negative
 		if (*src == '-') {
-			t->value = realloc(t->value, t->size += 1);
-			t->value[c++] = *src;
-			src++;
-			(*pos)++;
+			token_append(t, *src, &c);
+			src++; (*pos)++;
 		}
 
 		while (isnum(*src) || *src == '_') {
-			if (*src != '_') {
-				if (c >= t->size) {
-					t->size = t->size == 0 ? 4 : t->size * 2;
-					t->value = realloc(t->value, t->size);
-				}
-				t->value[c++] = *src;
-			}
-
-			src++;
-			(*pos)++;
+			if (*src != '_') token_append(t, *src, &c);
+			src++; (*pos)++;
 		}
 	}
-
-	if (c >= t->size)
-		t->value = realloc(t->value, t->size + 1);
-	t->value[c] = '\0';
+	token_nullterm(t, c);
 
 	return t;
 }
@@ -154,9 +126,7 @@ static token_t *lex_end(const char *src, size_t *pos) {
 	UNUSED(src);
 
 	token_t *t = token_def(TOKEN_END, ";", 1);
-
-	src++;
-	(*pos)++;
+	src++; (*pos)++;
 
 	return t;
 }
@@ -165,9 +135,7 @@ static token_t *lex_ref(const char *src, size_t *pos) {
 	UNUSED(src);
 
 	token_t *t = token_def(TOKEN_REF, "%", 1);
-
-	src++;
-	(*pos)++;
+	src++; (*pos)++;
 
 	return t;
 }
@@ -176,35 +144,26 @@ static token_t *lex_int(const char *src, size_t *pos) {
 	UNUSED(src);
 
 	token_t *t = token_def(TOKEN_INT, "$", 1);
-
-	src++;
-	(*pos)++;
+	src++; (*pos)++;
 
 	return t;
 }
 
 static token_t *lex_str(const char *src, size_t *pos) {
 	token_t *t = token_new(TOKEN_STR);
-
-	src++;
-	(*pos)++;
+	src++; (*pos)++;
 
 	size_t c = 0;
 	int is_escaped = 0;
 	while ((*src != '"' || is_escaped) && *src != '\0') {
-		if (c >= t->size) {
-			t->size = t->size == 0 ? 4 : t->size * 2;
-			t->value = realloc(t->value, t->size);
-		}
-		t->value[c++] = *src;
+		token_append(t, *src, &c);
 
 		if (is_escaped)
 			is_escaped = 0;
 		else if (*src == '\\')
 			is_escaped = 1;
 
-		src++;
-		(*pos)++;
+		src++; (*pos)++;
 	}
 
 	if (*src != '"') {
@@ -213,14 +172,9 @@ static token_t *lex_str(const char *src, size_t *pos) {
 		free(t);
 		return NULL;
 	}
+	src++; (*pos)++;
 
-	src++;
-	(*pos)++;
-
-	if (c >= t->size)
-		t->value = realloc(t->value, t->size + 1);
-	t->value[c] = '\0';
-
+	token_nullterm(t, c);
 	return t;
 }
 
@@ -268,18 +222,13 @@ token_t *tokenize(const char *src, size_t len) {
 			continue;
 
 		int start = i;
-		if (isletter(c) || c == '_')
-			tok = lex_id(src + i, &i);
-		else if (isnum(c) || (c == '-' && isnum(cn)) || (c == '0' && cn == 'x') || (c == '0' && cn == 'b'))
+		if (isnum(c) || (c == '-' && isnum(cn)) || (c == '0' && cn == 'x') || (c == '0' && cn == 'b'))
 			tok = lex_num(src + i, &i);
-		else if (c == ';')
-			tok = lex_end(src + i, &i);
-		else if (c == '"')
-			tok = lex_str(src + i, &i);
-		else if (c == '%')
-			tok = lex_ref(src + i, &i);
-		else if (c == '$')
-			tok = lex_int(src + i, &i);
+		else if (isletter(c) || c == '_') tok = lex_id(src + i, &i);
+		else if (c == ';') tok = lex_end(src + i, &i);
+		else if (c == '"') tok = lex_str(src + i, &i);
+		else if (c == '%') tok = lex_ref(src + i, &i);
+		else if (c == '$') tok = lex_int(src + i, &i);
 		else {
 			fprintf(stderr, "Error: Invalid syntax = '%c' (l: %d, p: %d)\n", c, lineno, (int)i);
 			break;

@@ -14,9 +14,9 @@ static int reg_count() {
     return sizeof(vm.r) / sizeof(vm.r[0]);
 }
 
-static int reg_valid(int r, lit_t *arg) {
+static int reg_valid(int64_t r, lit_t *arg) {
     if (r < 0 || r >= reg_count()) {
-        fprintf(stderr, "Error: Invalid register = %d (l: %d, p: %d)\n", r, arg->lineno, arg->pos);
+        fprintf(stderr, "Error: Invalid register = %ld (l: %d, p: %d)\n", r, arg->lineno, arg->pos);
         return 0;
     }
 
@@ -56,9 +56,9 @@ static int get_reg(lit_t *arg, int64_t *val) {
     return reg_valid(*val, arg);
 }
 
-static int off_valid(int off, lit_t *arg, size_t size) {
+static int off_valid(int64_t off, lit_t *arg, size_t size) {
     if (off < 0 || off + size > VM_MEM) {
-        fprintf(stderr, "Error: Offset %d (0x%08x) is out of memory range (l: %d, p: %d)\n", off, off, arg->lineno, arg->pos);
+        fprintf(stderr, "Error: Offset %ld (0x%08x) is out of memory range (l: %d, p: %d)\n", off, (unsigned)off, arg->lineno, arg->pos);
         return 0;
     }
 
@@ -167,22 +167,16 @@ static int eval_memdump(inst_t *inst, size_t *i) {
     return 0;
 }
 
-static int eval_jump(inst_t *inst, size_t *i) {
+static int eval_jump(inst_t *inst, size_t *i, inst_e type) {
     int j = labels[inst->arg->uid];
     if (j == -1) {
         fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->repr, inst->arg->lineno, inst->arg->pos);
         return 1;
     }
 
-    *i = j;
-    return 0;
-}
-
-static int eval_jump_eq(inst_t *inst, size_t *i) {
-    int j = labels[inst->arg->uid];
-    if (j == -1) {
-        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->repr, inst->arg->lineno, inst->arg->pos);
-        return 1;
+    if (type == IN_JUMP) {
+        *i = j;
+        return 0;
     }
 
     lit_t *reg = inst->arg->next;
@@ -190,93 +184,18 @@ static int eval_jump_eq(inst_t *inst, size_t *i) {
     if (!get_reg(reg, &r))
         return 1;
 
-    if (vm.r[vm.a] == vm.r[r])
-        *i = j;
-    return 0;
-}
-
-static int eval_jump_ne(inst_t *inst, size_t *i) {
-    int j = labels[inst->arg->uid];
-    if (j == -1) {
-        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->repr, inst->arg->lineno, inst->arg->pos);
-        return 1;
+    switch (type) {
+        case IN_JUMP_EQ: if (vm.r[vm.a] == vm.r[r]) *i = j; break;
+        case IN_JUMP_NE: if (vm.r[vm.a] != vm.r[r]) *i = j; break;
+        case IN_JUMP_LT: if (vm.r[vm.a] < vm.r[r]) *i = j; break;
+        case IN_JUMP_GT: if (vm.r[vm.a] > vm.r[r]) *i = j; break;
+        case IN_JUMP_LE: if (vm.r[vm.a] <= vm.r[r]) *i = j; break;
+        case IN_JUMP_GE: if (vm.r[vm.a] >= vm.r[r]) *i = j; break;
+        default: {
+            fprintf(stderr, "Error: Unhandled jump (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
+            return 1;
+        }
     }
-
-    lit_t *reg = inst->arg->next;
-    int64_t r;
-    if (!get_reg(reg, &r))
-        return 1;
-
-    if (vm.r[vm.a] != vm.r[r])
-        *i = j;
-    return 0;
-}
-
-static int eval_jump_lt(inst_t *inst, size_t *i) {
-    int j = labels[inst->arg->uid];
-    if (j == -1) {
-        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->repr, inst->arg->lineno, inst->arg->pos);
-        return 1;
-    }
-
-    lit_t *reg = inst->arg->next;
-    int64_t r;
-    if (!get_reg(reg, &r))
-        return 1;
-
-    if (vm.r[vm.a] < vm.r[r])
-        *i = j;
-    return 0;
-}
-
-static int eval_jump_gt(inst_t *inst, size_t *i) {
-    int j = labels[inst->arg->uid];
-    if (j == -1) {
-        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->repr, inst->arg->lineno, inst->arg->pos);
-        return 1;
-    }
-
-    lit_t *reg = inst->arg->next;
-    int64_t r;
-    if (!get_reg(reg, &r))
-        return 1;
-
-    if (vm.r[vm.a] > vm.r[r])
-        *i = j;
-    return 0;
-}
-
-static int eval_jump_le(inst_t *inst, size_t *i) {
-    int j = labels[inst->arg->uid];
-    if (j == -1) {
-        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->repr, inst->arg->lineno, inst->arg->pos);
-        return 1;
-    }
-
-    lit_t *reg = inst->arg->next;
-    int64_t r;
-    if (!get_reg(reg, &r))
-        return 1;
-
-    if (vm.r[vm.a] <= vm.r[r])
-        *i = j;
-    return 0;
-}
-
-static int eval_jump_ge(inst_t *inst, size_t *i) {
-    int j = labels[inst->arg->uid];
-    if (j == -1) {
-        fprintf(stderr, "Error: Undefined label = %s (l: %d, p: %d)\n", inst->arg->repr, inst->arg->lineno, inst->arg->pos);
-        return 1;
-    }
-
-    lit_t *reg = inst->arg->next;
-    int64_t r;
-    if (!get_reg(reg, &r))
-        return 1;
-
-    if (vm.r[vm.a] >= vm.r[r])
-        *i = j;
     return 0;
 }
 
@@ -285,112 +204,41 @@ static int eval_label(inst_t *inst, size_t *i) {
     return 0;
 }
 
-static int eval_add(inst_t *inst, size_t *i) {
+static int eval_binop(inst_t *inst, size_t *i, inst_e type) {
     UNUSED(i);
 
     int64_t r;
     if (!get_reg(inst->arg, &r))
         return 1;
 
-    vm.r[vm.a] += vm.r[r];
-    return 0;
-}
+    switch (type) {
+        case IN_ADD: vm.r[vm.a] += vm.r[r]; break;
+        case IN_SUB: vm.r[vm.a] -= vm.r[r]; break;
+        case IN_MUL: vm.r[vm.a] *= vm.r[r]; break;
+        case IN_DIV:
+            if (vm.r[r] == 0) {
+                fprintf(stderr, "Error: Division by zero (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
+                return 1;
+            }
+            vm.r[vm.a] /= vm.r[r];
+            break;
+        case IN_MOD:
+            if (vm.r[r] == 0) {
+                fprintf(stderr, "Error: Division by zero (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
+                return 1;
+            }
+            vm.r[vm.a] %= vm.r[r];
+            break;
 
-static int eval_sub(inst_t *inst, size_t *i) {
-    UNUSED(i);
-
-    int64_t r;
-    if (!get_reg(inst->arg, &r))
-        return 1;
-
-    vm.r[vm.a] -= vm.r[r];
-    return 0;
-}
-
-static int eval_mul(inst_t *inst, size_t *i) {
-    UNUSED(i);
-
-    int64_t r;
-    if (!get_reg(inst->arg, &r))
-        return 1;
-
-    vm.r[vm.a] *= vm.r[r];
-    return 0;
-}
-
-static int eval_div(inst_t *inst, size_t *i) {
-    UNUSED(i);
-
-    int64_t r;
-    if (!get_reg(inst->arg, &r))
-        return 1;
-
-    if (vm.r[r] == 0) {
-        fprintf(stderr, "Error: Division by zero (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
-        return 1;
+        case IN_AND: vm.r[vm.a] &= vm.r[r]; break;
+        case IN_OR: vm.r[vm.a] |= vm.r[r]; break;
+        case IN_XOR: vm.r[vm.a] ^= vm.r[r]; break;
+        case IN_NOT: vm.r[vm.a] = ~vm.r[r]; break;
+        default: {
+            fprintf(stderr, "Error: Unhandled operation (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
+            return 1;
+        }
     }
-
-    vm.r[vm.a] /= vm.r[r];
-    return 0;
-}
-
-static int eval_mod(inst_t *inst, size_t *i) {
-    UNUSED(i);
-
-    int64_t r;
-    if (!get_reg(inst->arg, &r))
-        return 1;
-
-    if (vm.r[r] == 0) {
-        fprintf(stderr, "Error: Division by zero (l: %d, p: %d)\n", inst->arg->lineno, inst->arg->pos);
-        return 1;
-    }
-
-    vm.r[vm.a] %= vm.r[r];
-    return 0;
-}
-
-static int eval_and(inst_t *inst, size_t *i) {
-    UNUSED(i);
-
-    int64_t r;
-    if (!get_reg(inst->arg, &r))
-        return 1;
-
-    vm.r[vm.a] &= vm.r[r];
-    return 0;
-}
-
-static int eval_or(inst_t *inst, size_t *i) {
-    UNUSED(i);
-
-    int64_t r;
-    if (!get_reg(inst->arg, &r))
-        return 1;
-
-    vm.r[vm.a] |= vm.r[r];
-    return 0;
-}
-
-static int eval_xor(inst_t *inst, size_t *i) {
-    UNUSED(i);
-
-    int64_t r;
-    if (!get_reg(inst->arg, &r))
-        return 1;
-
-    vm.r[vm.a] ^= vm.r[r];
-    return 0;
-}
-
-static int eval_not(inst_t *inst, size_t *i) {
-    UNUSED(i);
-
-    int64_t r;
-    if (!get_reg(inst->arg, &r))
-        return 1;
-
-    vm.r[vm.a] = ~vm.r[r];
     return 0;
 }
 
@@ -569,7 +417,7 @@ static int eval_memws2(inst_t *inst, size_t *i) {
     if (!get_val(addr, &p))
         return 1;
 
-    for (size_t i = 0; vm.mem[p + i] && p + i < VM_MEM; i++) {
+    for (size_t i = 0; p + i < VM_MEM && vm.mem[p + i]; i++) {
         if (!off_valid(off + i, inst->arg, i))
             return 1;
         vm.mem[off + i] = vm.mem[p + i];
@@ -598,7 +446,7 @@ static int eval_time(inst_t *inst, size_t *i) {
     return 0;
 }
 
-static int eval_shift_l(inst_t *inst, size_t *i) {
+static int eval_shift(inst_t *inst, size_t *i, inst_e type) {
     UNUSED(i);
 
     int64_t src;
@@ -610,7 +458,8 @@ static int eval_shift_l(inst_t *inst, size_t *i) {
     if (!get_reg(next, &dst))
         return 1;
 
-    vm.r[dst] = vm.r[vm.a] << vm.r[src];
+    if (type == IN_SHIFT_L) vm.r[dst] = vm.r[vm.a] << vm.r[src];
+    if (type == IN_SHIFT_R) vm.r[dst] = vm.r[vm.a] >> vm.r[src];
     return 0;
 }
 
@@ -627,7 +476,7 @@ static int eval_call(inst_t *inst, size_t *i) {
     memcpy(vm.mem + sp, &ret, sizeof(size_t));
     vm.r[vm.a] = sp;
 
-    return eval_jump(inst, i);
+    return eval_jump(inst, i, IN_JUMP);
 }
 
 static int eval_return(inst_t *inst, size_t *i) {
@@ -646,22 +495,6 @@ static int eval_return(inst_t *inst, size_t *i) {
     vm.r[vm.a] = sp;
 
     *i = ret - 1;
-    return 0;
-}
-
-static int eval_shift_r(inst_t *inst, size_t *i) {
-    UNUSED(i);
-
-    int64_t src;
-    if (!get_reg(inst->arg, &src))
-        return 1;
-
-    lit_t *next = inst->arg->next;
-    int64_t dst;
-    if (!get_reg(next, &dst))
-        return 1;
-
-    vm.r[dst] = vm.r[vm.a] >> vm.r[src];
     return 0;
 }
 
@@ -708,7 +541,7 @@ static int eval_iow16(inst_t *inst, size_t *i) {
         return 1;
 
     FILE *io = (FILE*)addr;
-    uint8_t val = (uint16_t)vm.r[src];
+    uint16_t val = (uint16_t)vm.r[src];
     fwrite(&val, sizeof(uint16_t), 1, io);
     return 0;
 }
@@ -817,7 +650,7 @@ static int eval_iows2(inst_t *inst, size_t *i) {
     if (!get_val(addr2, &p))
         return 1;
 
-    for (size_t i = 0; vm.mem[p + i] && p + i < VM_MEM; i++)
+    for (size_t i = 0; p + i < VM_MEM && vm.mem[p + i]; i++)
         fwrite(&vm.mem[p + i], sizeof(uint8_t), 1, io);
     return 0;
 }
@@ -887,24 +720,24 @@ int exec(insts_t *insts) {
             case IN_LOAD: err = eval_load(inst, &i); break;
             case IN_LOAD_I: err = eval_load_i(inst, &i); break;
             case IN_SELECT: err = eval_select(inst, &i); break;
-            case IN_ADD: err = eval_add(inst, &i); break;
-            case IN_SUB: err = eval_sub(inst, &i); break;
-            case IN_MUL: err = eval_mul(inst, &i); break;
-            case IN_DIV: err = eval_div(inst, &i); break;
-            case IN_MOD: err = eval_mod(inst, &i); break;
-            case IN_AND: err = eval_and(inst, &i); break;
-            case IN_OR: err = eval_or(inst, &i); break;
-            case IN_XOR: err = eval_xor(inst, &i); break;
-            case IN_NOT: err = eval_not(inst, &i); break;
-            case IN_SHIFT_L: err = eval_shift_l(inst, &i); break;
-            case IN_SHIFT_R: err = eval_shift_r(inst, &i); break;
-            case IN_JUMP: err = eval_jump(inst, &i); break;
-            case IN_JUMP_EQ: err = eval_jump_eq(inst, &i); break;
-            case IN_JUMP_NE: err = eval_jump_ne(inst, &i); break;
-            case IN_JUMP_LT: err = eval_jump_lt(inst, &i); break;
-            case IN_JUMP_GT: err = eval_jump_gt(inst, &i); break;
-            case IN_JUMP_LE: err = eval_jump_le(inst, &i); break;
-            case IN_JUMP_GE: err = eval_jump_ge(inst, &i); break;
+            case IN_ADD:
+            case IN_SUB:
+            case IN_MUL:
+            case IN_DIV:
+            case IN_MOD:
+            case IN_AND:
+            case IN_OR:
+            case IN_XOR:
+            case IN_NOT: err = eval_binop(inst, &i, inst->type); break;
+            case IN_SHIFT_L: err = eval_shift(inst, &i, inst->type); break;
+            case IN_SHIFT_R: err = eval_shift(inst, &i, inst->type); break;
+            case IN_JUMP:
+            case IN_JUMP_EQ:
+            case IN_JUMP_NE:
+            case IN_JUMP_LT:
+            case IN_JUMP_GT:
+            case IN_JUMP_LE:
+            case IN_JUMP_GE: err = eval_jump(inst, &i, inst->type); break;
             case IN_CALL: err = eval_call(inst, &i); break;
             case IN_RETURN: err = eval_return(inst, &i); break;
             case IN_DUMP: err = eval_dump(inst, &i); break;

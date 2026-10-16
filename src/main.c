@@ -1,6 +1,7 @@
 #include <parser.h>
 #include <vm.h>
 #include <defs.h>
+#include <util.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,17 +30,9 @@ int main(int argc, char *argv[]) {
 
 	for (int i = 1; i < argc; i++) {
 		if (strncmp(argv[i], "--", 2) == 0) {
-			if (options.count >= options.size) {
-				options.size++;
-				options.items = realloc(options.items, sizeof(*options.items)*options.size);
-			}
-			options.items[options.count++] = argv[i] + 2;
+			list_push(options, argv[i] + 2);
 		} else {
-			if (args.count >= args.size) {
-				args.size++;
-				args.items = realloc(args.items, sizeof(*args.items)*args.size);
-			}
-			args.items[args.count++] = argv[i];
+			list_push(args, argv[i]);
 		}
 	}
 
@@ -47,7 +40,15 @@ int main(int argc, char *argv[]) {
 		if (has_option("debug"))
 			crux_debug = 1;
 		else if (has_option("help")) {
-			printf("CRUX2 r%d\nUsage: crux <file>\n\nArgs:\n\t--help\n\t\tShow help and exit.\n\t--debug\n\t\tShow debug informations.\n", CRUX_VERSION);
+			printf(
+				"CRUX2 r%d\n"
+				"Usage: crux <file>\n\n"
+				"Args:\n"
+				"  --help\n"
+				"    Show help and exit.\n"
+				"  --debug\n"
+				"    Show debug informations.\n",
+			CRUX_VERSION);
 			return 0;
 		}
 	}

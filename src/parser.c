@@ -1,5 +1,6 @@
 #include <vm.h>
 #include <defs.h>
+#include <util.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,24 +45,6 @@ void unescape(char *buffer, const char *src, size_t size) {
         buffer[i++] = '\\';
 
     buffer[i] = '\0';
-}
-
-static void insts_push(inst_t *inst) {
-    if (insts->count == insts->length - 1) {
-        insts->length *= 2;
-        insts->array = realloc(insts->array, sizeof(inst_t)*insts->length);
-    }
-
-    insts->array[insts->count++] = inst;
-}
-
-static void ids_push(id2_t *id) {
-    if (ids->count == ids->length - 1) {
-        ids->length *= 2;
-        ids->array = realloc(ids->array, sizeof(id2_t)*ids->length);
-    }
-
-    ids->array[ids->count++] = id;
 }
 
 static token_t *parse_op(token_t *prev, token_t *arg) {
@@ -188,7 +171,7 @@ static uint32_t get_index(char *name) {
     id2_t *id = malloc(sizeof(id2_t));
     id->id = ids->index++;
     id->name = name;
-    ids_push(id);
+    list_push2(ids, id);
 
     return id->id;
 }
@@ -425,7 +408,7 @@ insts_t *parse(token_t *tokens) {
             inst->lineno = start->lineno;
             inst->pos = start->pos;
             inst->arg = start->next && start->next->type != TOKEN_END ? parse_args(start->next) : NULL;
-            insts_push(inst);
+            list_push2(insts, inst);
 
             curr = end->next;
         } else {
