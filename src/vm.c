@@ -1,5 +1,6 @@
 #include <vm.h>
 #include <defs.h>
+#include <util.h>
 
 #include <time.h>
 #include <stdio.h>
@@ -703,6 +704,28 @@ static int eval_memwsh(inst_t *inst, size_t *i) {
     return 0;
 }
 
+static int eval_load_rom(inst_t *inst, size_t *i) {
+    UNUSED(i);
+
+    char *path = inst->arg->char_type;
+    FILE *file = fopen(path, "rb");
+    if (!file) {
+        fprintf(stderr, "Error: failed to open file (l: %d, p: %d)\n", inst->lineno, inst->pos);
+        return 1;
+    }
+
+    size_t size;
+	file_size(file, &size);
+
+    if (size > VM_MEM) {
+        fprintf(stderr, "Error: not enough memory (l: %d, p: %d)\n", inst->lineno, inst->pos);
+        return 1;
+    }
+
+    fread(vm.mem, sizeof(uint8_t), size, file);
+    return 0;
+}
+
 /* -- eval instructions end */
 
 int exec(insts_t *insts) {
@@ -768,6 +791,7 @@ int exec(insts_t *insts) {
             case IN_IOWS2: err = eval_iows2(inst, &i); break;
             case IN_MEMWSN: err = eval_memwsn(inst, &i); break;
             case IN_MEMWSH: err = eval_memwsh(inst, &i); break;
+            case IN_LOAD_ROM: err = eval_load_rom(inst, &i); break;
             default:
                 err = 1;
                 fprintf(stderr, "Error: Unhandled instruction = %d (l: %d, p: %d)\n", inst->type, inst->lineno, inst->pos);

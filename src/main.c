@@ -62,9 +62,7 @@ int main(int argc, char *argv[]) {
 		return fprintf(stderr, "Error: file not found = %s\n", input_file);
 
 	size_t size;
-	fseek(file, 0, SEEK_END);
-	size = ftell(file);
-	rewind(file);
+	file_size(file, &size);
 
 	char buf[size + 1];
 	fread(buf, sizeof(char), size, file);

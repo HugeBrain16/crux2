@@ -9,6 +9,7 @@ typedef enum {
     IN_SELECT,
     IN_LOAD_I,
     IN_LOAD,
+    IN_LOAD_ROM,
     IN_LABEL,
     IN_ADD,
     IN_SUB,

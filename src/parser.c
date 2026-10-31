@@ -146,6 +146,21 @@ static token_t *parse_str_arg(token_t *inst, token_t *arg) {
  
     return next->next;
 }
+
+static token_t *parse_str_arg2(token_t *inst, token_t *arg) { 
+    if (!arg) {
+        fprintf(stderr, "Error: Value expected (l: %d, p: %d)\n", inst->lineno, inst->pos);
+        return NULL;
+    }
+
+    if (arg->type != TOKEN_STR) {
+        fprintf(stderr, "Error: Value expected (l: %d, p: %d)\n", arg->lineno, arg->pos);
+        return NULL;
+    }
+ 
+    return arg->next;
+}
+ 
  
 static token_t *parse_no_arg(token_t *inst, token_t *arg) {
     UNUSED(inst);
@@ -360,6 +375,8 @@ static parser_t parsers[] = {
     {"ior64", IN_IOR64, parse_num_arg},
     {"iows", IN_IOWS, parse_str_arg},
     {"iows2", IN_IOWS2, parse_num_arg2},
+
+    {"load_rom", IN_LOAD_ROM, parse_str_arg2},
 };
 
 insts_t *parse(token_t *tokens) {

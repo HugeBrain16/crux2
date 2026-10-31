@@ -15,4 +15,9 @@
     } \
     l->array[l->count++] = v
 
+#define file_size(file, size) \
+	fseek(file, 0, SEEK_END); \
+	*size = ftell(file); \
+	rewind(file) \
+
 #endif
