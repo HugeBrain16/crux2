@@ -159,7 +159,8 @@ static int eval_memdump(inst_t *inst, size_t *i) {
     }
     */
 
-    FILE *f = fopen("memory.bin", "wb");
+    char *path = inst->arg->char_type;
+    FILE *f = fopen(path, "wb");
     if (!f) {
         fprintf(stderr, "Error: Failed to dump memory (l: %d, p: %d)\n", inst->lineno, inst->pos);
         return 1;

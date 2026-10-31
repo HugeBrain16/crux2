@@ -361,7 +361,7 @@ static parser_t parsers[] = {
     {"memwsh", IN_MEMWSH, parse_num_arg2},
 
     {"dump", IN_DUMP, parse_no_arg},
-    {"memdump", IN_MEMDUMP, parse_no_arg},
+    {"memdump", IN_MEMDUMP, parse_str_arg2},
 
     {"time", IN_TIME, parse_no_arg},
 

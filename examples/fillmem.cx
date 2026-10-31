@@ -7,4 +7,4 @@ label next;
     select 0; inc;
     jump_ne next 2;
 
-memdump;
+memdump "memory.bin";

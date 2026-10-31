@@ -1,2 +1,2 @@
 dump;
-memdump;
+memdump "memory.bin";
