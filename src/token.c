@@ -6,6 +6,7 @@
 #include <string.h>
 
 static int lineno;
+static int last_newline;
 
 static int isnum(char c) {
 	return c >= '0' && c <= '9';
@@ -83,7 +84,7 @@ static token_t *lex_num(const char *src, size_t *pos) {
 		src += 2; (*pos) += 2;
 
 		if (!ishex(*src)) {
-			fprintf(stderr, "Error: Invalid hex value (l: %d, p: %d)\n", lineno, (int)(*pos));
+			fprintf(stderr, "Error: Invalid hex value (l: %d, p: %d)\n", lineno, (int)(*pos - last_newline));
 			return NULL;
 		}
 
@@ -97,7 +98,7 @@ static token_t *lex_num(const char *src, size_t *pos) {
 		src += 2; (*pos) += 2;
 
 		if (!isbin(*src)) {
-			fprintf(stderr, "Error: Invalid binary value (l: %d, p: %d)\n", lineno, (int)(*pos));
+			fprintf(stderr, "Error: Invalid binary value (l: %d, p: %d)\n", lineno, (int)(*pos - last_newline));
 			return NULL;
 		}
 
@@ -167,7 +168,7 @@ static token_t *lex_str(const char *src, size_t *pos) {
 	}
 
 	if (*src != '"') {
-		fprintf(stderr, "Error: Unclosed string (l: %d, p: %d)\n", lineno, (int)(*pos));
+		fprintf(stderr, "Error: Unclosed string (l: %d, p: %d)\n", lineno, (int)(*pos - last_newline));
 		free(t->value);
 		free(t);
 		return NULL;
@@ -182,6 +183,7 @@ token_t *tokenize(const char *src, size_t len) {
 	if (!len) return NULL;
 
 	lineno = 1;
+	last_newline = 0;
 	token_t *head = NULL;
 	token_t *curr = NULL;
 
@@ -215,6 +217,7 @@ token_t *tokenize(const char *src, size_t len) {
 				in_comment = 0;
 
 			lineno++;
+			last_newline = i;
 			continue;
 		}
 
@@ -230,7 +233,7 @@ token_t *tokenize(const char *src, size_t len) {
 		else if (c == '%') tok = lex_ref(src + i, &i);
 		else if (c == '$') tok = lex_int(src + i, &i);
 		else {
-			fprintf(stderr, "Error: Invalid syntax = '%c' (l: %d, p: %d)\n", c, lineno, (int)i);
+			fprintf(stderr, "Error: Invalid syntax = '%c' (l: %d, p: %d)\n", c, lineno, (int)i - last_newline);
 			break;
 		}
 
@@ -238,7 +241,7 @@ token_t *tokenize(const char *src, size_t len) {
 			i--;
 
 			tok->lineno = lineno;
-			tok->pos = start;
+			tok->pos = start - last_newline;
 			
 			if (crux_debug)
 				printf("Debug[token]: line=%d pos=%d value=%s\n", tok->lineno, tok->pos, tok->value);
